@@ -1,0 +1,5 @@
+win/Debug/
+win/Release/
+win/_ReSharper.h264bsd/
+win/ipch/
+win/*.sdf
