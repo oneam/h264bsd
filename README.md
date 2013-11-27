@@ -8,5 +8,5 @@ The intention is to provide a simple H.264 decoder that can be easily invoked fr
 
 ## Directories
 
-*src* Contains the modified source.
-*win* Contains Visual Studio project files for building.
+* *src* Contains the modified source.
+* *win* Contains Visual Studio project files for building.
