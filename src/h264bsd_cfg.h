@@ -46,9 +46,6 @@
 #define MAX_NUM_SEQ_PARAM_SETS 32
 #define MAX_NUM_PIC_PARAM_SETS 256
 
-#define _ERROR_PRINT
-#define _DEBUG_PRINT
-
 /*------------------------------------------------------------------------------
     3. Data types
 ------------------------------------------------------------------------------*/
