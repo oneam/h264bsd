@@ -14,7 +14,8 @@ export_functions = [
 	"_h264bsdNextOutputPicture",
 	"_h264bsdPicWidth",
 	"_h264bsdPicHeight",
-	"_h264bsdCroppingParams"
+	"_h264bsdCroppingParams",
+	"_h264bsdCheckValidParamSets"
 ]
 
 file "h264bsd_asm.js" => o_files do

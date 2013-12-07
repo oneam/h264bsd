@@ -20,63 +20,87 @@
 //  IN THE SOFTWARE.
 //
 
-var H264BSD_RDY = 0;
-var H264BSD_PIC_RDY = 1;
-var H264BSD_HDRS_RDY = 2;
-var H264BSD_ERROR = 3;
-var H264BSD_PARAM_SET_ERROR = 4;
-var H264BSD_MEMALLOC_ERROR = 5;
+/*
+ * This class wraps the details of the h264bsd library.
+ */
+function H264Decoder(Module) {
+	this.Module = Module;
+	this.released = false;
+
+	this.pStorage = H264Decoder.h264bsdAlloc();
+	H264Decoder.h264bsdInit(this.Module, this.pStorage, 0);
+}
+
+H264Decoder.prototype.release = function() {
+	if(this.released) return;
+
+	this.released = true;
+	H264Decoder.h264bsdShutdown(this.Module, this.pStorage);
+	H264Decoder.h264bsdFree(this.Module, this.pStorage);
+}
+
+H264Decoder.RDY = 0;
+H264Decoder.PIC_RDY = 1;
+H264Decoder.HDRS_RDY = 2;
+H264Decoder.ERROR = 3;
+H264Decoder.PARAM_SET_ERROR = 4;
+H264Decoder.MEMALLOC_ERROR = 5;
 
 // storage_t* h264bsdAlloc();
-function h264bsdAlloc() {
-	return Module.ccall('h264bsdAlloc', number);
+H264Decoder.h264bsdAlloc = function(Module) {
+	return Module.ccall('_h264bsdAlloc', number);
 }
 
 // void h264bsdFree(storage_t *pStorage);
-function h264bsdFree(pStorage) {
-	Module.ccall('h264bsdFree', null, [number], [decoder]);
+H264Decoder.h264bsdFree = function(Module, pStorage) {
+	Module.ccall('_h264bsdFree', null, [number], [pStorage]);
 }
 
 // u32 h264bsdInit(storage_t *pStorage, u32 noOutputReordering);
-function h264bsdInit(pStorage, noOutputReordering) {
-	return Module.ccall('h264bsdInit', number, [number, number], [decoder, noOutputReordering]);
+H264Decoder.h264bsdInit = function(Module, pStorage, noOutputReordering) {
+	return Module.ccall('_h264bsdInit', number, [number, number], [pStorage, noOutputReordering]);
 }
 
 //void h264bsdShutdown(storage_t *pStorage);
-function h264bsdShutdown(pStorage) {
-	Module.ccall('h264bsdShutdown', null, [number], [decoder]);
+H264Decoder.h264bsdShutdown = function(Module, pStorage) {
+	Module.ccall('_h264bsdShutdown', null, [number], [pStorage]);
 }
 
 // u32 h264bsdDecode(storage_t *pStorage, u8 *byteStrm, u32 len, u32 picId, u32 *readBytes);
-function h264bsdDecode(pStorage, pBytes, len, picId, pBytesRead) {
-	return Module.ccall('h264bsdDecode', 
+H264Decoder.h264bsdDecode = function(Module, pStorage, pBytes, len, picId, pBytesRead) {
+	return Module.ccall('_h264bsdDecode', 
 		number, 
 		[number, number, number, number, number], 
 		[pStorage, pBytes, len, picId, pReadBytes]);
 }
 
 // u8* h264bsdNextOutputPicture(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs);
-function h264bsdNextOutputPicture(pStorage, pPicId, pIsIdrPic, pNumErrMbs) {
-	return Module.ccall('h264bsdNextOutputPicture', 
+H264Decoder.h264bsdNextOutputPicture = function(Module, pStorage, pPicId, pIsIdrPic, pNumErrMbs) {
+	return Module.ccall('_h264bsdNextOutputPicture', 
 		number, 
 		[number, number, number, number], 
 		[pStorage, pPicId, pIsIdrPic, pNumErrMbs]);
 }
 
 // u32 h264bsdPicWidth(storage_t *pStorage);
-function h264bsdPicWidth(pStorage) {
-	return Module.ccall('h264bsdPicWidth', number, [number], [decoder]);
+H264Decoder.h264bsdPicWidth = function(Module, pStorage) {
+	return Module.ccall('_h264bsdPicWidth', number, [number], [pStorage]);
 }
 
 // u32 h264bsdPicHeight(storage_t *pStorage);
-function h264bsdPicHeight(pStorage) {
-	return Module.ccall('h264bsdPicHeight', number, [number], [decoder]);
+H264Decoder.h264bsdPicHeight = function(Module, pStorage) {
+	return Module.ccall('_h264bsdPicHeight', number, [number], [pStorage]);
 }
 
 // void h264bsdCroppingParams(storage_t *pStorage, u32 *croppingFlag, u32 *left, u32 *width, u32 *top, u32 *height);
-function h264bsdCroppingParams(pStorage, pCroppingFlag, pLeft, pWidth, pTop, pHeight) {
-	return Module.ccall('h264bsdCroppingParams', 
+H264Decoder.h264bsdCroppingParams = function(Module, pStorage, pCroppingFlag, pLeft, pWidth, pTop, pHeight) {
+	return Module.ccall('_h264bsdCroppingParams', 
 		number, 
 		[number, number, number, number, number, number, number], 
 		[pStorage, pCroppingFlag, pLeft, pWidth, pTop, pHeight]);
+}
+
+// u32 h264bsdCheckValidParamSets(storage_t *pStorage);
+H264Decoder.h264bsdCheckValidParamSets = function(Module, pStorage){
+	return Module.ccall('_h264bsdCheckValidParamSets', number, [number], [pStorage]);
 }
