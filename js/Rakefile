@@ -1,0 +1,29 @@
+
+rule '.o' => ['.c'] do |t|
+  sh "emcc #{t.source} -O2 -c -o #{t.name}"
+end
+
+o_files = FileList["../src/*.c"].gsub(/c$/, 'o')
+
+export_functions = [
+	"_h264bsdAlloc",
+	"_h264bsdFree",
+	"_h264bsdInit",
+	"_h264bsdDecode",
+	"_h264bsdShutdown",
+	"_h264bsdNextOutputPicture",
+	"_h264bsdPicWidth",
+	"_h264bsdPicHeight",
+	"_h264bsdCroppingParams"
+]
+
+file "h264bsd_asm.js" => o_files do
+	sh "emcc #{o_files.join(' ')} -s EXPORTED_FUNCTIONS='[\"#{export_functions.join('", "')}\"]' -O2 -o h264bsd_asm.js"
+end
+
+task :clean do
+	o_files.each{|o| FileUtils.rm_f(o)}
+	FileUtils.rm_f("h264bsd_asm.js")
+end
+
+task :default => ["h264bsd_asm.js"]

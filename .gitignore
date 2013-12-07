@@ -4,3 +4,4 @@ win/_ReSharper.h264bsd/
 win/ipch/
 win/*.sdf
 *.user
+*.o
