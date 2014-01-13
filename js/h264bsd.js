@@ -39,6 +39,36 @@ H264Decoder.prototype.release = function() {
 	H264Decoder.h264bsdFree(this.Module, this.pStorage);
 }
 
+H264Decoder.prototype.decode = function(data) {
+	if(data === undefined || !(data instanceof DataView)) {
+		throw new Error("data must be a DataView instance")
+	}
+
+	if(!(data instanceof Uint8Array)) {
+		data = Uint8Array(data);
+	}
+
+	var heapOffset = 0;
+	var allocedPtr = 0;
+
+	if(data.buffer === Module.HEAPU8.buffer) {
+		heapOffset = data.byteOffset;
+	} else {
+		heapOffset = allocedPtr = H264Decoder.malloc(this.Module, data.byteLength);
+		this.Module.HEAPU8.set(data, heapOffset);
+	}
+
+	var len = byteLength;
+	var offset = heapOffset;
+	while(len > 0) {
+		// TODO: Do the decode and return data here
+	}
+
+	if(allocedPtr != 0) {
+		H264Decoder.free(this.Module, allocedPtr);
+	}
+}
+
 H264Decoder.RDY = 0;
 H264Decoder.PIC_RDY = 1;
 H264Decoder.HDRS_RDY = 2;
@@ -103,4 +133,19 @@ H264Decoder.h264bsdCroppingParams = function(Module, pStorage, pCroppingFlag, pL
 // u32 h264bsdCheckValidParamSets(storage_t *pStorage);
 H264Decoder.h264bsdCheckValidParamSets = function(Module, pStorage){
 	return Module.ccall('_h264bsdCheckValidParamSets', number, [number], [pStorage]);
+}
+
+// void* malloc(size_t size);
+H264Decoder.malloc = function(Module, size){
+	return Module.ccall('_malloc', number, [number], [size]);
+}
+
+// void free(void* ptr);
+H264Decoder.free = function(Module, ptr){
+	return Module.ccall('_free', null, [number], [ptr]);
+}
+
+// void* memcpy(void* dest, void* src, size_t size);
+H264Decoder.memcpy = function(Module, length){
+	return Module.ccall('_malloc', number, [number, number, number], [dest, src, size]);
 }
