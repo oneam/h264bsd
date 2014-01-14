@@ -31,6 +31,8 @@ function H264Decoder(Module) {
 	H264Decoder.h264bsdInit(this.Module, this.pStorage, 0);
 }
 
+H264Decoder.returnVals = ['H264BSD_RDY' , 'H264BSD_PIC_RDY' , 'H264BSD_HDRS_RDY' , 'H264BSD_ERROR' , 'H264BSD_PARAM_SET_ERROR' , 'H264BSD_MEMALLOC_ERROR'];
+
 H264Decoder.RDY = 0;
 H264Decoder.PIC_RDY = 1;
 H264Decoder.HDRS_RDY = 2;
@@ -51,32 +53,33 @@ H264Decoder.prototype.release = function() {
 }
 
 H264Decoder.prototype.decode = function(data) {
-	if(data === undefined || !(data instanceof DataView)) {
-		throw new Error("data must be a DataView instance")
+	if(data === undefined || !(data instanceof ArrayBuffer)) {
+		throw new Error("data must be a ArrayBuffer instance")
 	}
-
-	if(!(data instanceof Uint8Array)) {
-		data = Uint8Array(data);
-	}
-
+	
+	data = new Uint8Array(data);
+	
 	var heapOffset = 0;
 	var allocedPtr = 0;
 
-	if(data.buffer === this.Module.HEAPU8.buffer) {
+	if(data.buffer === H264Decoder.Module.HEAPU8.buffer) {
 		heapOffset = data.byteOffset;
 	} else {
-		heapOffset = allocedPtr = H264Decoder.malloc(this.Module, data.byteLength);
-		this.Module.HEAPU8.set(data, heapOffset);
+		heapOffset = allocedPtr = H264Decoder.malloc(H264Decoder.Module, data.byteLength);
+		H264Decoder.Module.HEAPU8.set(data, heapOffset);
 	}
 
-	var len = byteLength;
+	var len = data.byteLength;
 	var offset = heapOffset;
+	var pBytesRead = 0;
 	while(len > 0) {
-		// TODO: Do the decode and return data here
+		var ret = H264Decoder.h264bsdDecode(H264Decoder.Module, H264Decoder.pStorage, offset, len, 0, pBytesRead);
+		console.log('Ret: ' , H264Decoder.returnVals[ret], ' pBytesRead: ', pBytesRead);
+
 	}
 
 	if(allocedPtr != 0) {
-		H264Decoder.free(this.Module, allocedPtr);
+		H264Decoder.free(H264Decoder.Module, allocedPtr);
 	}
 }
 
@@ -105,7 +108,7 @@ H264Decoder.h264bsdDecode = function(Module, pStorage, pBytes, len, picId, pByte
 	return H264Decoder.Module.ccall('h264bsdDecode', 
 		Number, 
 		[Number, Number, Number, Number, Number], 
-		[pStorage, pBytes, len, picId, pReadBytes]);
+		[pStorage, pBytes, len, picId, pBytesRead]);
 }
 
 // u8* h264bsdNextOutputPicture(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs);

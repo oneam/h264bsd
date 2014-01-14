@@ -18,9 +18,8 @@
 
 			// Closure to capture the file information.
 			reader.onload = function(e) {
-				var buf = e.target.result;
-				var dv = new DataView(buf)
-				d.decode(dv);			
+				var buf = e.target.result;							
+				d.decode(buf);			
 			};
 
 			// Read in the image file as a data URL.
