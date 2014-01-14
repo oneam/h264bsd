@@ -24,12 +24,23 @@
  * This class wraps the details of the h264bsd library.
  */
 function H264Decoder(Module) {
-	this.Module = Module;
-	this.released = false;
+	H264Decoder.Module = Module;
+	H264Decoder.released = false;
 
-	this.pStorage = H264Decoder.h264bsdAlloc();
+	H264Decoder.pStorage = H264Decoder.h264bsdAlloc();
 	H264Decoder.h264bsdInit(this.Module, this.pStorage, 0);
 }
+
+H264Decoder.RDY = 0;
+H264Decoder.PIC_RDY = 1;
+H264Decoder.HDRS_RDY = 2;
+H264Decoder.ERROR = 3;
+H264Decoder.PARAM_SET_ERROR = 4;
+H264Decoder.MEMALLOC_ERROR = 5;
+
+H264Decoder.Module = null;
+H264Decoder.released = false;
+H264Decoder.pStorage = null;
 
 H264Decoder.prototype.release = function() {
 	if(this.released) return;
@@ -51,7 +62,7 @@ H264Decoder.prototype.decode = function(data) {
 	var heapOffset = 0;
 	var allocedPtr = 0;
 
-	if(data.buffer === Module.HEAPU8.buffer) {
+	if(data.buffer === this.Module.HEAPU8.buffer) {
 		heapOffset = data.byteOffset;
 	} else {
 		heapOffset = allocedPtr = H264Decoder.malloc(this.Module, data.byteLength);
@@ -69,83 +80,76 @@ H264Decoder.prototype.decode = function(data) {
 	}
 }
 
-H264Decoder.RDY = 0;
-H264Decoder.PIC_RDY = 1;
-H264Decoder.HDRS_RDY = 2;
-H264Decoder.ERROR = 3;
-H264Decoder.PARAM_SET_ERROR = 4;
-H264Decoder.MEMALLOC_ERROR = 5;
-
 // storage_t* h264bsdAlloc();
 H264Decoder.h264bsdAlloc = function(Module) {
-	return Module.ccall('_h264bsdAlloc', number);
+	return H264Decoder.Module.ccall('h264bsdAlloc', Number);
 }
 
 // void h264bsdFree(storage_t *pStorage);
 H264Decoder.h264bsdFree = function(Module, pStorage) {
-	Module.ccall('_h264bsdFree', null, [number], [pStorage]);
+	H264Decoder.Module.ccall('h264bsdFree', null, [Number], [pStorage]);
 }
 
 // u32 h264bsdInit(storage_t *pStorage, u32 noOutputReordering);
 H264Decoder.h264bsdInit = function(Module, pStorage, noOutputReordering) {
-	return Module.ccall('_h264bsdInit', number, [number, number], [pStorage, noOutputReordering]);
+	return H264Decoder.Module.ccall('h264bsdInit', Number, [Number, Number], [pStorage, noOutputReordering]);
 }
 
 //void h264bsdShutdown(storage_t *pStorage);
 H264Decoder.h264bsdShutdown = function(Module, pStorage) {
-	Module.ccall('_h264bsdShutdown', null, [number], [pStorage]);
+	H264Decoder.Module.ccall('h264bsdShutdown', null, [Number], [pStorage]);
 }
 
 // u32 h264bsdDecode(storage_t *pStorage, u8 *byteStrm, u32 len, u32 picId, u32 *readBytes);
 H264Decoder.h264bsdDecode = function(Module, pStorage, pBytes, len, picId, pBytesRead) {
-	return Module.ccall('_h264bsdDecode', 
-		number, 
-		[number, number, number, number, number], 
+	return H264Decoder.Module.ccall('h264bsdDecode', 
+		Number, 
+		[Number, Number, Number, Number, Number], 
 		[pStorage, pBytes, len, picId, pReadBytes]);
 }
 
 // u8* h264bsdNextOutputPicture(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs);
 H264Decoder.h264bsdNextOutputPicture = function(Module, pStorage, pPicId, pIsIdrPic, pNumErrMbs) {
-	return Module.ccall('_h264bsdNextOutputPicture', 
-		number, 
-		[number, number, number, number], 
+	return H264Decoder.Module.ccall('h264bsdNextOutputPicture', 
+		Number, 
+		[Number, Number, Number, Number], 
 		[pStorage, pPicId, pIsIdrPic, pNumErrMbs]);
 }
 
 // u32 h264bsdPicWidth(storage_t *pStorage);
 H264Decoder.h264bsdPicWidth = function(Module, pStorage) {
-	return Module.ccall('_h264bsdPicWidth', number, [number], [pStorage]);
+	return H264Decoder.Module.ccall('h264bsdPicWidth', Number, [Number], [pStorage]);
 }
 
 // u32 h264bsdPicHeight(storage_t *pStorage);
 H264Decoder.h264bsdPicHeight = function(Module, pStorage) {
-	return Module.ccall('_h264bsdPicHeight', number, [number], [pStorage]);
+	return H264Decoder.Module.ccall('h264bsdPicHeight', Number, [Number], [pStorage]);
 }
 
 // void h264bsdCroppingParams(storage_t *pStorage, u32 *croppingFlag, u32 *left, u32 *width, u32 *top, u32 *height);
 H264Decoder.h264bsdCroppingParams = function(Module, pStorage, pCroppingFlag, pLeft, pWidth, pTop, pHeight) {
-	return Module.ccall('_h264bsdCroppingParams', 
-		number, 
-		[number, number, number, number, number, number, number], 
+	return H264Decoder.Module.ccall('h264bsdCroppingParams', 
+		Number, 
+		[Number, Number, Number, Number, Number, Number, Number], 
 		[pStorage, pCroppingFlag, pLeft, pWidth, pTop, pHeight]);
 }
 
 // u32 h264bsdCheckValidParamSets(storage_t *pStorage);
 H264Decoder.h264bsdCheckValidParamSets = function(Module, pStorage){
-	return Module.ccall('_h264bsdCheckValidParamSets', number, [number], [pStorage]);
+	return H264Decoder.Module.ccall('h264bsdCheckValidParamSets', Number, [Number], [pStorage]);
 }
 
 // void* malloc(size_t size);
 H264Decoder.malloc = function(Module, size){
-	return Module.ccall('_malloc', number, [number], [size]);
+	return H264Decoder.Module.ccall('malloc', Number, [Number], [size]);
 }
 
 // void free(void* ptr);
 H264Decoder.free = function(Module, ptr){
-	return Module.ccall('_free', null, [number], [ptr]);
+	return H264Decoder.Module.ccall('free', null, [Number], [ptr]);
 }
 
 // void* memcpy(void* dest, void* src, size_t size);
 H264Decoder.memcpy = function(Module, length){
-	return Module.ccall('_malloc', number, [number, number, number], [dest, src, size]);
+	return H264Decoder.Module.ccall('malloc', Number, [Number, Number, Number], [dest, src, size]);
 }

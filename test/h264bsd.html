@@ -1,0 +1,33 @@
+<!doctype html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>h.264bsd test</title>
+</head>
+<body>
+    <input type="file" id="file" name="file" />
+    <script src="../js/h264bsd_asm.js"></script>
+    <script src="../js/h264bsd.js"></script>
+    <script type="text/javascript">
+    	var d = new H264Decoder(Module);
+
+		function handleFileSelect(evt) {
+		    var f = evt.target.files[0]; // FileList object
+			
+			var reader = new FileReader();
+
+			// Closure to capture the file information.
+			reader.onload = function(e) {
+				var buf = e.target.result;
+				var dv = new DataView(buf)
+				d.decode(dv);			
+			};
+
+			// Read in the image file as a data URL.
+			reader.readAsArrayBuffer(f);
+		}		  
+
+ 		document.getElementById('file').addEventListener('change', handleFileSelect, false);
+    </script>
+</body>
+</html>
