@@ -31,8 +31,6 @@ function H264Decoder(Module) {
 	H264Decoder.h264bsdInit(this.Module, this.pStorage, 0);
 }
 
-H264Decoder.returnVals = ['H264BSD_RDY' , 'H264BSD_PIC_RDY' , 'H264BSD_HDRS_RDY' , 'H264BSD_ERROR' , 'H264BSD_PARAM_SET_ERROR' , 'H264BSD_MEMALLOC_ERROR'];
-
 H264Decoder.RDY = 0;
 H264Decoder.PIC_RDY = 1;
 H264Decoder.HDRS_RDY = 2;
@@ -59,28 +57,42 @@ H264Decoder.prototype.decode = function(data) {
 	
 	data = new Uint8Array(data);
 	
-	var heapOffset = 0;
-	var allocedPtr = 0;
+	var offset = 0; //The offset into the heap when decoding 
+	var length = data.byteLength; //The byte-wise length of the data to decode
+	var pAlloced = 0; //The original pointer to the data buffer (for freeing)
+	var pBytesRead = 0; //Pointer to bytesRead
+	var bytesRead;  //UInt32 containing the number of bytes read from a decode operation
+	var retCode = 0; //Return code from a decode operation
 
-	if(data.buffer === H264Decoder.Module.HEAPU8.buffer) {
-		heapOffset = data.byteOffset;
-	} else {
-		heapOffset = allocedPtr = H264Decoder.malloc(H264Decoder.Module, data.byteLength);
-		H264Decoder.Module.HEAPU8.set(data, heapOffset);
+	//Get a pointer into the heap were our decoded bytes will live
+	offset = pAlloced = H264Decoder.malloc(H264Decoder.Module, length);
+	H264Decoder.Module.HEAPU8.set(data, offset);
+
+	//get a pointer to where bytesRead will be stored: Uint32 = 4 bytes
+	pBytesRead = H264Decoder.malloc(H264Decoder.Module, 4);
+	bytesRead = new Uint32Array(H264Decoder.Module.HEAPU32.buffer, pBytesRead, 1);		
+
+	//Keep deocding frames while there is still something to decode
+	while(length > 0) {
+
+		retCode = H264Decoder.h264bsdDecode(H264Decoder.Module, H264Decoder.pStorage, offset, length, 0, pBytesRead);
+		console.log('Ret: ' , retCode,' pStorage: ', H264Decoder.pStorage, ' offset: ', offset, ' length: ', length, ' pBytesRead: ', pBytesRead, ' bytesRead: ', bytesRead);
+
+		var numBytesRead = bytesRead[0];
+		length = length - numBytesRead;
+		offset = offset + numBytesRead;
 	}
 
-	var len = data.byteLength;
-	var offset = heapOffset;
-	var pBytesRead = 0;
-	while(len > 0) {
-		var ret = H264Decoder.h264bsdDecode(H264Decoder.Module, H264Decoder.pStorage, offset, len, 0, pBytesRead);
-		console.log('Ret: ' , H264Decoder.returnVals[ret], ' pBytesRead: ', pBytesRead);
-
+	if(pAlloced != 0) {
+		H264Decoder.free(H264Decoder.Module, pAlloced);
 	}
+}
 
-	if(allocedPtr != 0) {
-		H264Decoder.free(H264Decoder.Module, allocedPtr);
-	}
+// u32 h264bsdDecode(storage_t *pStorage, u8 *byteStrm, u32 len, u32 picId, u32 *readBytes);
+H264Decoder.h264bsdDecode = function(Module, pStorage, pBytes, len, picId, pBytesRead) {
+	return H264Decoder.Module.ccall('h264bsdDecode', Number, 
+		[Number, Number, Number, Number, Number], 
+		[pStorage, pBytes, len, picId, pBytesRead]);
 }
 
 // storage_t* h264bsdAlloc();
@@ -101,14 +113,6 @@ H264Decoder.h264bsdInit = function(Module, pStorage, noOutputReordering) {
 //void h264bsdShutdown(storage_t *pStorage);
 H264Decoder.h264bsdShutdown = function(Module, pStorage) {
 	H264Decoder.Module.ccall('h264bsdShutdown', null, [Number], [pStorage]);
-}
-
-// u32 h264bsdDecode(storage_t *pStorage, u8 *byteStrm, u32 len, u32 picId, u32 *readBytes);
-H264Decoder.h264bsdDecode = function(Module, pStorage, pBytes, len, picId, pBytesRead) {
-	return H264Decoder.Module.ccall('h264bsdDecode', 
-		Number, 
-		[Number, Number, Number, Number, Number], 
-		[pStorage, pBytes, len, picId, pBytesRead]);
 }
 
 // u8* h264bsdNextOutputPicture(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs);
