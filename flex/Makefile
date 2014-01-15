@@ -1,0 +1,38 @@
+SOURCES = $(wildcard ../src/*.c) main.c
+
+FLASCC:=X
+FLEX:=X
+AS3COMPILER:=asc2.jar
+BASE_CFLAGS:=-Wno-write-strings -Wno-trigraphs -DFLASCC
+
+$?UNAME=$(shell uname -s)
+ifneq (,$(findstring CYGWIN,$(UNAME)))
+	$?nativepath=$(shell cygpath -at mixed $(1))
+	$?unixpath=$(shell cygpath -at unix $(1))
+else
+	$?nativepath=$(abspath $(1))
+	$?unixpath=$(abspath $(1))
+endif
+
+ifneq (,$(findstring "asc2.jar","$(AS3COMPILER)"))
+	$?AS3COMPILERARGS=$(JAVA_HOME)/bin/java $(JVMARGS) -jar $(call nativepath,$(FLASCC)/usr/lib/$(AS3COMPILER)) -merge -md 
+else
+	echo "ASC is no longer supported" ; exit 1 ;
+endif
+
+check:
+	@if [ -d $(FLASCC)/usr/bin ] ; then true ; \
+	else echo "Couldn't locate FLASCC sdk directory, please invoke make with \"make FLASCC=/path/to/FLASCC/sdk ...\"" ; exit 1 ; \
+	fi
+
+	@if [ -d "$(FLEX)/bin" ] ; then true ; \
+	else echo "Couldn't locate Flex sdk directory, please invoke make with \"make FLEX=/path/to/flex  ...\"" ; exit 1 ; \
+	fi
+
+swc: check
+	"$(FLASCC)/usr/bin/gcc" $(BASE_CFLAGS) -O4 $(SOURCES) -emit-swc=h264bsd -o h264bsd.swc
+	"$(FLEX)/bin/mxmlc" -static-link-runtime-shared-libraries -compiler.omit-trace-statements=false -library-path=h264bsd.swc -debug=false h264test.as -o h264test.swf
+
+
+clean:
+	rm -f *.swf *.swc *.bc *.exe
