@@ -7,10 +7,14 @@
 <body>
     <input type="file" id="file" name="file" />
     <canvas id="canvas" style="width:640px;height:480px;border:solid;"></canvas>
+    <h264decoder id="h264decoder"><h264decoder>
     <script src="../js/h264bsd_asm.js"></script>
     <script src="../js/h264bsd.js"></script>
     <script type="text/javascript">
     	var d = new H264Decoder(Module);
+
+    	var f = document.getElementById('h264decoder');
+    	console.log(f);
 
 		function handleFileSelect(evt) {
 		    var f = evt.target.files[0]; // FileList object
