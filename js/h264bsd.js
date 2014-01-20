@@ -28,7 +28,8 @@ function H264Decoder(Module) {
 	H264Decoder.released = false;
 
 	H264Decoder.pStorage = H264Decoder.h264bsdAlloc();
-	H264Decoder.h264bsdInit(this.Module, this.pStorage, 0);
+
+	H264Decoder.h264bsdInit(H264Decoder.Module, H264Decoder.pStorage, 0);
 }
 
 H264Decoder.RDY = 0;
@@ -56,6 +57,7 @@ H264Decoder.prototype.decode = function(data) {
 	}
 	
 	data = new Uint8Array(data);
+	console.log('Data: ', data);
 	
 	var pData = 0; //The offset into the heap when decoding 
 	var pAlloced = 0; //The original pointer to the data buffer (for freeing)
@@ -78,7 +80,7 @@ H264Decoder.prototype.decode = function(data) {
 		console.log('pStorage: ', H264Decoder.pStorage, ' pData: ', pData, ' byteLength: ', data.byteLength, ' lastPicId: ', lastPicId);		
 		retCode = H264Decoder.h264bsdDecode(H264Decoder.Module, H264Decoder.pStorage, pData, data.byteLength, lastPicId, pBytesRead);		
 
-		bytesRead = H264Decoder.Module.getValue(pBytesRead, 'i32')
+		bytesRead = H264Decoder.Module.getValue(pBytesRead, 'i32');
 		console.log('Ret: ' , retCode, ' bytesRead: ', bytesRead);
 
 		length = length - bytesRead;		
