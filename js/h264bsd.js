@@ -82,16 +82,17 @@ H264Decoder.prototype.decode = function(data) {
 
 		retCode = H264Decoder.h264bsdDecode(H264Decoder.Module, H264Decoder.pStorage, pData, length, lastPicId, pBytesRead);		
 		bytesRead = H264Decoder.Module.getValue(pBytesRead, 'i32');
-		window.console.log('Ret: ' , retCode, ' bytesRead: ', bytesRead);
-
+		
 		switch(retCode){
 			case H264Decoder.PIC_RDY:
 				lastPicId++;
-				window.console.log('h264bsdDecode, PIC_RDY: ', lastPicId);
-				H264Decoder.getNextOutputPicture();
-				break;
-			case H264Decoder.HDRS_RDY:
+				var evt = new CustomEvent("pictureReady", {
+					detail: H264Decoder.getNextOutputPicture()
+				});
 
+				if (H264Decoder.targetCanvas != null){
+					H264Decoder.targetCanvas.dispatchEvent(evt);
+				}				
 				break;
 		}
 
@@ -131,9 +132,7 @@ H264Decoder.getNextOutputPicture = function(){
 	picId = H264Decoder.Module.getValue(pPicId, 'i32');	
 	isIdrPic = H264Decoder.Module.getValue(pIsIdrPic, 'i32');	
 	numErrMbs = H264Decoder.Module.getValue(pNumErrMbs, 'i32');
-
-	window.console.log('getNextOutputPicture: picId: ' + picId + ', isIdrPic: ' + isIdrPic + ', numErrMbs: ' + numErrMbs + ', length: ' + length);
-
+	
 	bytes = new Uint8Array();
 	bytes = H264Decoder.Module.HEAPU8.subarray(pBytes, (pBytes + length));
 
@@ -150,43 +149,27 @@ H264Decoder.getNextOutputPicture = function(){
         H264Decoder.free(pNumErrMbs);	
     }
 
-    var croppingInfo = H264Decoder.getCroppingInfo();
-    H264Decoder.drawWebGl(bytes, croppingInfo);
-    //var result = H264Decoder.convertYUV2RGB(bytes, croppingInfo);
-    
     H264Decoder.free(pPicId);		
   	H264Decoder.free(pIsIdrPic);
     H264Decoder.free(pNumErrMbs);	
 
-};
-
-H264Decoder.drawWebGl = function(yuvBytes, croppingInfo){
-	if (yuvBytes == null)
-		return;
-
-	var width = croppingInfo.width - croppingInfo.left;
-	var height = croppingInfo.height - croppingInfo.top;
-	H264Decoder.yuvCanvas = new YUVWebGLCanvas(H264Decoder.targetCanvas, new Size(width, height));
-	
-	var startTime = (new Date);	
-	var lumaSize = width * height;
-	var chromaSize = lumaSize >> 2;
-
-    H264Decoder.yuvCanvas.YTexture.fill(yuvBytes.subarray(0, lumaSize), true);
-    H264Decoder.yuvCanvas.UTexture.fill(yuvBytes.subarray(lumaSize, lumaSize + chromaSize), true);
-    H264Decoder.yuvCanvas.VTexture.fill(yuvBytes.subarray(lumaSize + chromaSize, lumaSize + 2 * chromaSize), true);
-    H264Decoder.yuvCanvas.drawScene();
-
-    console.log("WebGL YUV decode: " + ((new Date) - startTime));
-
-	// var thisFrame = (self.thisLoop = new Date) - self.lastLoop;
- //  	self.frameTime += (thisFrame - self.frameTime) / self.filterStrength;
- //  	self.lastLoop = self.thisLoop;
- //  	self.stats['fps']  = (1000/self.frameTime).toFixed(1);
- //  	if (self.onImageUpdated)
- //  		self.onImageUpdated(self.stats);		
- //  	self.frameCount = 0;
-
+    var ret = {};
+    var croppingInfo = H264Decoder.getCroppingInfo();
+    if (H264Decoder.detectWebGl()){
+		ret = {
+		    encoding: 'YUV',
+		    picture: bytes, 
+		    height: croppingInfo.height, 
+		    width: croppingInfo.width};
+    }else{
+		ret = {
+			encoding: 'RGB',
+		    picture: H264Decoder.convertYUV2RGB(bytes, croppingInfo), 
+		    height: croppingInfo.height, 
+		    width: croppingInfo.width};
+    }
+    
+    return ret; 
 };
 
 //Excessively pink
@@ -194,12 +177,7 @@ H264Decoder.convertYUV2RGB = function(yuvBytes, croppingInfo){
 	var width = croppingInfo.width - croppingInfo.left;
 	var height = croppingInfo.height - croppingInfo.top;
 
-	var buffer = document.createElement('canvas');
-	buffer.height = height;
-	buffer.width = width; 
-	var context = buffer.getContext('2d');
-	var output = context.createImageData(width,height);
-	var rgbBytes = output.data;
+	var rgbBytes = new Uint8Array();
 
 	var cb = width * height;
 	var cr = cb + ((width * height) / 2);	
@@ -256,13 +234,7 @@ H264Decoder.convertYUV2RGB = function(yuvBytes, croppingInfo){
 		} 
 	}
 
-	var c = document.getElementById('canvas');
-	c.height = height;
-	c.width = width;
-	c.style.height = height;
-	c.style.width = width;
-	var outputContext = c.getContext('2d'); 
-	outputContext.putImageData(output,0,0);
+	return rgbBytes;
 };
 
 H264Decoder.getCroppingInfo = function(){
@@ -286,6 +258,29 @@ H264Decoder.getCroppingInfo = function(){
 	H264Decoder.free(pHeight);
 
 	return result;
+};
+
+//http://www.browserleaks.com/webgl#howto-detect-webgl
+H264Decoder.detectWebGl = function()
+{
+    if (!!window.WebGLRenderingContext) {
+        var canvas = document.createElement("canvas"),
+             names = ["webgl", "experimental-webgl", "moz-webgl", "webkit-3d"],
+           context = false; 
+        for(var i=0;i<4;i++) {
+            try {
+                context = canvas.getContext(names[i]);
+                if (context && typeof context.getParameter == "function") {
+                    // WebGL is enabled                    
+                    return true;
+                }
+            } catch(e) {}
+        } 
+        // WebGL is supported, but disabled
+        return false;
+    }
+    // WebGL not supported
+    return false;
 };
 
 H264Decoder.getYUVLength = function(){

@@ -468,7 +468,6 @@ var YUVWebGLCanvas = (function () {
       this.gl.enableVertexAttribArray(this.textureCoordAttribute);
     },
     onInitTextures: function () {
-      console.log("creatingTextures: size: " + this.size);
       this.YTexture = new Texture(this.gl, this.size);
       this.UTexture = new Texture(this.gl, this.size.getHalfSize());
       this.VTexture = new Texture(this.gl, this.size.getHalfSize());

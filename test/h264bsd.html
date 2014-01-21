@@ -8,18 +8,40 @@
     <input type="file" id="file" name="file" /><br/>
     <canvas id="canvas" width="640" height="480" style="border:solid;"></canvas>
     <h264decoder id="h264decoder"><h264decoder>
-    <script src="../js/h264bsd_asm.js"></script>
+    <!--<script src="../js/h264bsd_asm.js"></script>
     <script src="../js/sylvester.js"></script>
     <script src="../js/glUtils.js"></script>
     <script src="../js/util.js"></script>
     <script src="../js/canvas.js"></script>    
-    <script src="../js/h264bsd.js"></script>
+    <script src="../js/h264bsd.js"></script>-->
+    <script src="../js/dist/h264bsd.min.js"></script>
     <script type="text/javascript">
-    	var canvas = document.getElementById('canvas');
+    	var canvas = document.getElementById('canvas');    	
     	var d = new H264Decoder(Module, canvas);
+    	canvas.addEventListener("pictureReady", function(e){
 
-    	var f = document.getElementById('h264decoder');
-    	console.log(f);
+			if (e.detail.picture == null){
+				return;
+			}
+			if (e.detail.encoding != 'YUV'){
+				return;
+			}
+
+			var bytes = e.detail.picture;			
+			var width = e.detail.width;
+			var height = e.detail.height;
+
+			var wgc = new YUVWebGLCanvas(canvas, new Size(width, height));
+				
+			var lumaSize = width * height;
+			var chromaSize = lumaSize >> 2;
+
+		    wgc.YTexture.fill(bytes.subarray(0, lumaSize), true);
+		    wgc.UTexture.fill(bytes.subarray(lumaSize, lumaSize + chromaSize), true);
+		    wgc.VTexture.fill(bytes.subarray(lumaSize + chromaSize, lumaSize + 2 * chromaSize), true);
+		    wgc.drawScene();
+
+    	});
 
 		function handleFileSelect(evt) {
 		    var f = evt.target.files[0]; // FileList object
