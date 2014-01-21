@@ -5,13 +5,18 @@
     <title>h.264bsd test</title>
 </head>
 <body>
-    <input type="file" id="file" name="file" />
-    <canvas id="canvas" style="width:640px;height:480px;border:solid;"></canvas>
+    <input type="file" id="file" name="file" /><br/>
+    <canvas id="canvas" width="640" height="480" style="border:solid;"></canvas>
     <h264decoder id="h264decoder"><h264decoder>
     <script src="../js/h264bsd_asm.js"></script>
+    <script src="../js/sylvester.js"></script>
+    <script src="../js/glUtils.js"></script>
+    <script src="../js/util.js"></script>
+    <script src="../js/canvas.js"></script>    
     <script src="../js/h264bsd.js"></script>
     <script type="text/javascript">
-    	var d = new H264Decoder(Module);
+    	var canvas = document.getElementById('canvas');
+    	var d = new H264Decoder(Module, canvas);
 
     	var f = document.getElementById('h264decoder');
     	console.log(f);
