@@ -3,7 +3,7 @@ SOURCES = $(wildcard ../src/*.c) main.c
 FLASCC:=X
 FLEX:=X
 AS3COMPILER:=asc2.jar
-BASE_CFLAGS:=-Wno-write-strings -Wno-trigraphs -DFLASCC
+BASE_CFLAGS:=-Wno-write-strings -Wno-trigraphs -DFLASCC -04 --emit-llvm
 
 $?UNAME=$(shell uname -s)
 ifneq (,$(findstring CYGWIN,$(UNAME)))
@@ -30,8 +30,8 @@ check:
 	fi
 
 swc: check
-	"$(FLASCC)/usr/bin/gcc" $(BASE_CFLAGS) -O4 $(SOURCES) -emit-swc=h264bsd -o h264bsd.swc
-	"$(FLEX)/bin/mxmlc" -static-link-runtime-shared-libraries -compiler.omit-trace-statements=false -library-path=h264bsd.swc -debug=false h264test.as -o h264test.swf
+	"$(FLASCC)/usr/bin/gcc" $(BASE_CFLAGS) $(SOURCES) -emit-swc=h264bsd -o h264bsd.swc
+	"$(FLEX)/bin/mxmlc" -static-link-runtime-shared-libraries -compiler.omit-trace-statements=false -library-path=h264bsd.swc -debug=true h264test.as -o h264test.swf
 
 
 clean:

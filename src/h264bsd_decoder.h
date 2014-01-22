@@ -69,6 +69,8 @@ void h264bsdShutdown(storage_t *pStorage);
 u8* h264bsdNextOutputPicture(storage_t *pStorage, u32 *picId, u32 *isIdrPic,
     u32 *numErrMbs);
 
+u8* h264bsdNextOutputPictureRGB(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs, u32 *length);
+
 u32 h264bsdPicWidth(storage_t *pStorage);
 u32 h264bsdPicHeight(storage_t *pStorage);
 u32 h264bsdVideoRange(storage_t *pStorage);
@@ -85,6 +87,7 @@ u32 h264bsdProfile(storage_t *pStorage);
 
 storage_t* h264bsdAlloc();
 void h264bsdFree(storage_t *pStorage);
+u8* yuv2rgb(storage_t *pStorage, u8* yuvBytes);
 
 #endif /* #ifdef H264SWDEC_DECODER_H */
 
