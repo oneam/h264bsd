@@ -22,19 +22,28 @@
 
 /*
  * This class wraps the details of the h264bsd library.
+ * Module object is an Emscripten module provided globally by h264bsd_asm.js
+ * targetElement element is an HTML element that will emit events that should 
+ * be listened for when H264 images are ready to be displayed
+ * forceRGB boolean Says whether the YUV->RGB decoding should be used (even 
+ * in the presence of the WebGL canvas)
  */
-function H264Decoder(Module, targetCanvas, forceRGB) {
+function H264Decoder(Module, targetElement, forceRGB) {
 	var self = this;	
 	self.Module = Module;
 	self.released = false;
 	self.yuvCanvas = null;
-	self.pStorage = H264Decoder.h264bsdAlloc(self.Module);
-	H264Decoder.h264bsdInit(self.Module, self.pStorage, 0);
-	self.targetCanvas = targetCanvas;	
+	self.pStorage = H264Decoder.h264bsdAlloc_(self.Module);
+	H264Decoder.h264bsdInit_(self.Module, self.pStorage, 0);
+	self.targetElement = targetElement;	
+
+	//If we are using RGB
 	if (forceRGB){
 		self.useWebGL = false;
 		self.precision = 32768;
-		self.co_y = Math.floor((1.165 * self.precision) + 0.5);
+
+		//Calculate all of the YUV->RGB coefficients 
+		self.co_y = Math.floor((1.164 * self.precision) + 0.5);
 		self.co_rv = Math.floor((1.596 * self.precision) + 0.5);
 		self.co_gu = Math.floor((0.391 * self.precision) + 0.5);
 		self.co_gv = Math.floor((0.813 * self.precision) + 0.5);
@@ -70,7 +79,8 @@ function H264Decoder(Module, targetCanvas, forceRGB) {
 			self.coefficients_bu[i] = self.co_bu * (i - 128);
 		}
 	}else{
-		self.useWebGL = H264Decoder.detectWebGl();	
+		//Check if we can use WebGL (as this dictates the output pipline)
+		self.useWebGL = H264Decoder.detectWebGl_();	
 	}	
 };
 
@@ -81,15 +91,17 @@ H264Decoder.ERROR = 3;
 H264Decoder.PARAM_SET_ERROR = 4;
 H264Decoder.MEMALLOC_ERROR = 5;
 
+//Clean up memory used by the decoder
 H264Decoder.prototype.release = function() {
 	var self = this;
 	if(self.released) return;
 
 	self.released = true;
-	H264Decoder.h264bsdShutdown(self.Module, self.pStorage);
-	H264Decoder.h264bsdFree(self.Module, self.pStorage);
+	H264Decoder.h264bsdShutdown_(self.Module, self.pStorage);
+	H264Decoder.h264bsdFree_(self.Module, self.pStorage);
 };
 
+//Takes an array buffer of bytes and returns a UInt8Array of the decoded bytes
 H264Decoder.prototype.decode = function(data) {
 	var self = this;
 	if(typeof data === 'undefined' || !(data instanceof ArrayBuffer)) {
@@ -107,16 +119,16 @@ H264Decoder.prototype.decode = function(data) {
 	var lastPicId = 0; //ID of the last picture decoded
 
 	//Get a pointer into the heap were our decoded bytes will live
-	pData = pAlloced = H264Decoder.malloc(self.Module, length);
+	pData = pAlloced = H264Decoder.malloc_(self.Module, length);
 	self.Module.HEAPU8.set(data, pData);
 
 	//get a pointer to where bytesRead will be stored: Uint32 = 4 bytes
-	pBytesRead = H264Decoder.malloc(self.Module, 4);
+	pBytesRead = H264Decoder.malloc_(self.Module, 4);
 
 	//Keep decoding frames while there is still something to decode
 	while(length > 0) {
 
-		retCode = H264Decoder.h264bsdDecode(self.Module, self.pStorage, pData, length, lastPicId, pBytesRead);		
+		retCode = H264Decoder.h264bsdDecode_(self.Module, self.pStorage, pData, length, lastPicId, pBytesRead);		
 		bytesRead = self.Module.getValue(pBytesRead, 'i32');
 		switch(retCode){
 			case H264Decoder.PIC_RDY:
@@ -125,8 +137,9 @@ H264Decoder.prototype.decode = function(data) {
 					detail: self.getNextOutputPicture()
 				});
 
-				if (self.targetCanvas != null){
-					self.targetCanvas.dispatchEvent(evt);
+				if (self.targetElement != null){
+					//Raise the event on the displaying canvas element
+					self.targetElement.dispatchEvent(evt);
 				}				
 				break;
 		}
@@ -136,44 +149,46 @@ H264Decoder.prototype.decode = function(data) {
 	}
 
 	if(pAlloced != 0) {
-		H264Decoder.free(self.Module, pAlloced);
+		H264Decoder.free_(self.Module, pAlloced);
 	}
 	
 	if(pBytesRead != 0) {
-		H264Decoder.free(self.Module, pBytesRead);
+		H264Decoder.free_(self.Module, pBytesRead);
 	}
 
 };
 
 H264Decoder.prototype.getNextOutputPicture = function(){
 	var self = this; 
-	var length = self.getYUVLength();
+	var length = H264Decoder.getYUVLength_(self.Module, self.pStorage);
 
-	var pPicId = H264Decoder.malloc(self.Module, 4);
+	var pPicId = H264Decoder.malloc_(self.Module, 4);
 	var picId = 0;
 
-	var pIsIdrPic = H264Decoder.malloc(self.Module, 4);
+	var pIsIdrPic = H264Decoder.malloc_(self.Module, 4);
 	var isIdrPic = 0;
 
-	var pNumErrMbs = H264Decoder.malloc(self.Module, 4);
+	var pNumErrMbs = H264Decoder.malloc_(self.Module, 4);
 	var numErrMbs = 0;
 
-	var pBytes = H264Decoder.h264bsdNextOutputPicture(self.Module, self.pStorage, pPicId, pIsIdrPic, pNumErrMbs);
+	var pBytes = H264Decoder.h264bsdNextOutputPicture_(self.Module, self.pStorage, pPicId, pIsIdrPic, pNumErrMbs);
 	var bytes = null;
 
+	//We don't really use these
 	picId = self.Module.getValue(pPicId, 'i32');	
 	isIdrPic = self.Module.getValue(pIsIdrPic, 'i32');	
 	numErrMbs = self.Module.getValue(pNumErrMbs, 'i32');
-	
-	bytes = new Uint8Array();
+		
 	bytes = self.Module.HEAPU8.subarray(pBytes, (pBytes + length));
 
-    H264Decoder.free(self.Module, pPicId);		
-  	H264Decoder.free(self.Module, pIsIdrPic);
-    H264Decoder.free(self.Module, pNumErrMbs);	
+    H264Decoder.free_(self.Module, pPicId);		
+  	H264Decoder.free_(self.Module, pIsIdrPic);
+    H264Decoder.free_(self.Module, pNumErrMbs);	
 
     var ret = {};
-    var croppingInfo = self.getCroppingInfo();
+    var croppingInfo = H264Decoder.getCroppingInfo_(self.Module, self.pStorage);
+
+    //Return bytes according to the requested format
     if (self.useWebGL){
 		ret = {
 		    encoding: 'YUV',
@@ -183,7 +198,7 @@ H264Decoder.prototype.getNextOutputPicture = function(){
     }else{
 		ret = {
 			encoding: 'RGB',
-		    picture: H264Decoder.convertYUV2RGB(bytes, croppingInfo), 
+		    picture: H264Decoder.convertYUV2RGB_(bytes, croppingInfo, self), 
 		    height: croppingInfo.height, 
 		    width: croppingInfo.width};
     }
@@ -192,40 +207,25 @@ H264Decoder.prototype.getNextOutputPicture = function(){
 };
 
 
-H264Decoder.prototype.getCroppingInfo = function(){
+H264Decoder.getCroppingInfo_ = function(Module, pStorage){
 	var self = this;
-	var pCroppingFlag = H264Decoder.malloc(self.Module, 4);
-	var pLeftOffset = H264Decoder.malloc(self.Module, 4);
-	var pTopOffset = H264Decoder.malloc(self.Module, 4);
-	var pWidth = H264Decoder.malloc(self.Module, 4);
-	var pHeight = H264Decoder.malloc(self.Module, 4);
-
 	var result = {
-		'width': (H264Decoder.h264bsdPicWidth(self.Module, self.pStorage)*16),
-		'height': (H264Decoder.h264bsdPicHeight(self.Module, self.pStorage)*16),
+		'width': (H264Decoder.h264bsdPicWidth_(Module, pStorage)*16),
+		'height': (H264Decoder.h264bsdPicHeight_(Module, pStorage)*16),
 		'top': 0,
 		'left': 0
 	};
-
-	H264Decoder.free(self.Module, pCroppingFlag);
-	H264Decoder.free(self.Module, pLeftOffset);
-	H264Decoder.free(self.Module, pTopOffset);
-	H264Decoder.free(self.Module, pWidth);
-	H264Decoder.free(self.Module, pHeight);
-
 	return result;
 };
 
-
-H264Decoder.prototype.getYUVLength = function(){
-	var self = this;
-	var width = H264Decoder.h264bsdPicWidth(self.Module, self.pStorage);
-	var height = H264Decoder.h264bsdPicHeight(self.Module, self.pStorage);
+H264Decoder.getYUVLength_ = function(Module, pStorage){	
+	var width = H264Decoder.h264bsdPicWidth_(Module, pStorage);
+	var height = H264Decoder.h264bsdPicHeight_(Module, pStorage);
     return (width * 16 * height * 16) + (2 * width * 16 * height * 8);
 };
 
 //http://www.browserleaks.com/webgl#howto-detect-webgl
-H264Decoder.detectWebGl = function()
+H264Decoder.detectWebGl_ = function()
 {
     if (!!window.WebGLRenderingContext) {
         var canvas = document.createElement("canvas"),
@@ -247,104 +247,80 @@ H264Decoder.detectWebGl = function()
     return false;
 };
 
-//Excessively pink
-H264Decoder.convertYUV2RGB = function(yuvBytes, croppingInfo){
+//If WebGL Canvas is not availble, this will convert an array of yuv bytes into an array of rgb bytes
+H264Decoder.convertYUV2RGB_ = function(yuvBytes, croppingInfo, exCtx){
 	var width = croppingInfo.width - croppingInfo.left;
 	var height = croppingInfo.height - croppingInfo.top;
+	var rgbBytes = new Uint8ClampedArray(4 * height * width);
 
-	var rgbBytes = new Uint8Array(4 * height * width);
+	var lumaSize = width * height;
+	var chromaSize = lumaSize >> 2;
+	
+	var planeY_off = 0;
+	var planeU_off = lumaSize;
+	var planeV_off = lumaSize + chromaSize;
 
-	var cb = width * height;
-	var cr = cb + ((width * height) / 2);	
-	var numPixels = width * height;
+	var stride_Y_h_off;
+	var stride_UV_h_off;
+	var stride_RGBA_off;
+	for (var h=0;h<height;h++) {
+		stride_Y_h_off = (width)*h;
+		stride_UV_h_off = (width>>1)*(h>>1);
+		stride_RGBA_off = (width<<2)*h;
+		for (var w=0; w<width; w++) {
+			var Y = yuvBytes[planeY_off+ w+stride_Y_h_off];
+			stride_UV_off = (w>>1)+stride_UV_h_off;
+			var U = (yuvBytes[planeU_off+ stride_UV_off]);
+			var V = (yuvBytes[planeV_off+ stride_UV_off]);
+			
+			var R = exCtx.coefficients_y[Y] + exCtx.coefficients_rv[V];
+			var G = exCtx.coefficients_y[Y] - exCtx.coefficients_gu[U] - exCtx.coefficients_gv[V];
+			var B = exCtx.coefficients_y[Y] + exCtx.coefficients_bu[U];
 
-	var dst = 0;
-	var dst_width = 0;
+			R = R >> 15; // div by 32768
+			G = G >> 15;
+			B = B >> 15;
 
-	var k = 0;
-	for (var i = 0; i < numPixels; i += 2)
-	{
-		k += 1;
-
-		var y1 = yuvBytes[i];// & 0xff;
-		var y2 = yuvBytes[i + 1];// & 0xff;
-		var y3 = yuvBytes[width + i];// & 0xff;
-		var y4 = yuvBytes[width + i + 1];// & 0xff;
-		
-		var v = yuvBytes[cr + k];// & 0xff;
-		var u = yuvBytes[cb + k];// & 0xff;
-		
-		v = v - 128;
-		u = u - 128;
-
-		dst = i * 4;
-		dst_width = width*4 + dst;
-
-		// i
-		rgbBytes[dst] = 0xff;
-		rgbBytes[dst + 1] = H264Decoder.clamp((298 * (y1 - 16) + 409 * v + 128) >> 8, 255, 0);
-		rgbBytes[dst + 2] = H264Decoder.clamp((298 * (y1 - 16) - 100 * u - 208 *v + 128) >> 8, 255,0);
-		rgbBytes[dst + 3] = H264Decoder.clamp((298 * y1 + 516*u + 128) >> 8, 255, 0);
-				
-		// i + 1
-		rgbBytes[dst + 4] = 0xff;
-		rgbBytes[dst + 5] = H264Decoder.clamp((298 * (y2 - 16) + 409 * v + 128) >> 8, 255, 0);
-		rgbBytes[dst + 6] = H264Decoder.clamp((298 * (y2 - 16) - 100 * u - 208 *v + 128) >> 8, 255,0);
-		rgbBytes[dst + 7] = H264Decoder.clamp((298 * y2 + 516*u + 128) >> 8, 255, 0);
-		
-		//width
-		rgbBytes[dst_width] = 0xff;
-		rgbBytes[dst_width + 1] = H264Decoder.clamp((298 * (y3 - 16) + 409 * v + 128) >> 8, 255, 0);
-		rgbBytes[dst_width + 2] = H264Decoder.clamp((298 * (y2 - 16) - 100 * u - 208 *v + 128) >> 8, 255,0);
-		rgbBytes[dst_width + 3] = H264Decoder.clamp((298 * y3 + 516*u + 128) >> 8, 255, 0);
-				
-		//width + 1
-		rgbBytes[dst_width + 4] = 0xff;
-		rgbBytes[dst_width + 5] = H264Decoder.clamp((298 * (y4 - 16) + 409 * v + 128) >> 8, 255, 0);
-		rgbBytes[dst_width + 6] = H264Decoder.clamp((298 * (y4 - 16) - 100 * u - 208 *v + 128) >> 8, 255,0);
-		rgbBytes[dst_width + 7] = H264Decoder.clamp((298 * y4 + 516*u + 128) >> 8, 255, 0);
-
-		if (i != 0 && (i+2)%width ==0) {
-			i += width;					
-		} 
+			var outputData_pos = (w<<2)+stride_RGBA_off;
+			rgbBytes[0+outputData_pos] = R;
+			rgbBytes[1+outputData_pos] = G;
+			rgbBytes[2+outputData_pos] = B;
+			rgbBytes[3+outputData_pos] = 255;
+		}			
 	}
 
 	return rgbBytes;
 };
 
-H264Decoder.clamp = function(num, max, min) {
-  return Math.min(Math.max(num, min), max);
-};
-
 // u32 h264bsdDecode(storage_t *pStorage, u8 *byteStrm, u32 len, u32 picId, u32 *readBytes);
-H264Decoder.h264bsdDecode = function(Module, pStorage, pBytes, len, picId, pBytesRead) {
+H264Decoder.h264bsdDecode_ = function(Module, pStorage, pBytes, len, picId, pBytesRead) {
 	return Module.ccall('h264bsdDecode', Number, 
 		[Number, Number, Number, Number, Number], 
 		[pStorage, pBytes, len, picId, pBytesRead]);
 };
 
 // storage_t* h264bsdAlloc();
-H264Decoder.h264bsdAlloc = function(Module) {
+H264Decoder.h264bsdAlloc_ = function(Module) {
 	return Module.ccall('h264bsdAlloc', Number);
 };
 
 // void h264bsdFree(storage_t *pStorage);
-H264Decoder.h264bsdFree = function(Module, pStorage) {
+H264Decoder.h264bsdFree_ = function(Module, pStorage) {
 	Module.ccall('h264bsdFree', null, [Number], [pStorage]);
 };
 
 // u32 h264bsdInit(storage_t *pStorage, u32 noOutputReordering);
-H264Decoder.h264bsdInit = function(Module, pStorage, noOutputReordering) {
+H264Decoder.h264bsdInit_ = function(Module, pStorage, noOutputReordering) {
 	return Module.ccall('h264bsdInit', Number, [Number, Number], [pStorage, noOutputReordering]);
 };
 
 //void h264bsdShutdown(storage_t *pStorage);
-H264Decoder.h264bsdShutdown = function(Module, pStorage) {
+H264Decoder.h264bsdShutdown_ = function(Module, pStorage) {
 	Module.ccall('h264bsdShutdown', null, [Number], [pStorage]);
 };
 
 // u8* h264bsdNextOutputPicture(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs);
-H264Decoder.h264bsdNextOutputPicture = function(Module, pStorage, pPicId, pIsIdrPic, pNumErrMbs) {
+H264Decoder.h264bsdNextOutputPicture_ = function(Module, pStorage, pPicId, pIsIdrPic, pNumErrMbs) {
 	return Module.ccall('h264bsdNextOutputPicture', 
 		Number, 
 		[Number, Number, Number, Number], 
@@ -352,17 +328,17 @@ H264Decoder.h264bsdNextOutputPicture = function(Module, pStorage, pPicId, pIsIdr
 };
 
 // u32 h264bsdPicWidth(storage_t *pStorage);
-H264Decoder.h264bsdPicWidth = function(Module, pStorage) {
+H264Decoder.h264bsdPicWidth_ = function(Module, pStorage) {
 	return Module.ccall('h264bsdPicWidth', Number, [Number], [pStorage]);
 };
 
 // u32 h264bsdPicHeight(storage_t *pStorage);
-H264Decoder.h264bsdPicHeight = function(Module, pStorage) {
+H264Decoder.h264bsdPicHeight_ = function(Module, pStorage) {
 	return Module.ccall('h264bsdPicHeight', Number, [Number], [pStorage]);
 };
 
 // void h264bsdCroppingParams(storage_t *pStorage, u32 *croppingFlag, u32 *left, u32 *width, u32 *top, u32 *height);
-H264Decoder.h264bsdCroppingParams = function(Module, pStorage, pCroppingFlag, pLeft, pWidth, pTop, pHeight) {
+H264Decoder.h264bsdCroppingParams_ = function(Module, pStorage, pCroppingFlag, pLeft, pWidth, pTop, pHeight) {
 	return Module.ccall('h264bsdCroppingParams', 
 		Number, 
 		[Number, Number, Number, Number, Number, Number, Number], 
@@ -370,21 +346,21 @@ H264Decoder.h264bsdCroppingParams = function(Module, pStorage, pCroppingFlag, pL
 };
 
 // u32 h264bsdCheckValidParamSets(storage_t *pStorage);
-H264Decoder.h264bsdCheckValidParamSets = function(Module, pStorage){
+H264Decoder.h264bsdCheckValidParamSets_ = function(Module, pStorage){
 	return Module.ccall('h264bsdCheckValidParamSets', Number, [Number], [pStorage]);
 };
 
 // void* malloc(size_t size);
-H264Decoder.malloc = function(Module, size){
+H264Decoder.malloc_ = function(Module, size){
 	return Module.ccall('malloc', Number, [Number], [size]);
 };
 
 // void free(void* ptr);
-H264Decoder.free = function(Module, ptr){
+H264Decoder.free_ = function(Module, ptr){
 	return Module.ccall('free', null, [Number], [ptr]);
 };
 
 // void* memcpy(void* dest, void* src, size_t size);
-H264Decoder.memcpy = function(Module, length){
+H264Decoder.memcpy_ = function(Module, length){
 	return Module.ccall('malloc', Number, [Number, Number, Number], [dest, src, size]);
 };

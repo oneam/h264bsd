@@ -6,20 +6,27 @@
 </head>
 <body>
     <input type="file" id="file" name="file" /><br/>
+
+    <!--This is where we will display decoded frames-->
     <canvas id="canvas" width="640" height="480" style="border:solid;"></canvas>
-    <h264decoder id="h264decoder"><h264decoder>
+
     <script src="../js/h264bsd_asm.js"></script>
     <script src="../js/sylvester.js"></script>
     <script src="../js/glUtils.js"></script>
     <script src="../js/util.js"></script>
     <script src="../js/canvas.js"></script>    
     <script src="../js/h264bsd.js"></script>
-    <!--<script src="../js/dist/h264bsd.min.js"></script>-->
-    <script type="text/javascript">
-    	var canvas = document.getElementById('canvas');    	
-    	var d = new H264Decoder(Module, canvas, true);
-    	canvas.addEventListener("pictureReady", function(e){
+       
+    <!--<script src="../js/dist/h264bsd.min.js"></script>--> 
 
+    <script type="text/javascript">        	
+    	var canvas = document.getElementById('canvas');    	    	
+    	
+    	//Create / init the decoder
+    	var d = new H264Decoder(Module, canvas, false);
+
+    	//The element we passed into the H264Decoder constructor (canvas), will emit 'pictureReady' events
+    	canvas.addEventListener("pictureReady", function(e){
 			if (e.detail.picture == null){
 				return;
 			}			
@@ -28,6 +35,8 @@
 			var width = e.detail.width;
 			var height = e.detail.height;
 
+			//The picture will be encoded as YUV or RGB depending on 1) the 3rd param of the H264Decoder constructor,
+			//2) Support for the WebGL canvas in the browser.
 			if (e.detail.encoding === 'YUV'){
 				var wgc = new YUVWebGLCanvas(canvas, new Size(width, height));
 				var lumaSize = width * height;
@@ -49,16 +58,19 @@
 				}
 				console.log(out);
 
-				canvas.height = height;
+				canvas.height = height;				
 				canvas.width = width;
+
 				canvas.style.height = height;
 				canvas.style.width = width;
+
 				var oc = canvas.getContext('2d');
 				oc.putImageData(imageData, 0,0);
 			}
 
     	});
 
+		//Use the FileReader to get the bytes into the decoder
 		function handleFileSelect(evt) {
 		    var f = evt.target.files[0]; // FileList object
 			

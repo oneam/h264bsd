@@ -1,26 +1,16 @@
 module.exports = function(grunt) {
-
-  // Project configuration.
   grunt.initConfig({
 
-    //Doesn't seem to work atm.  Clobbers global vars needed in test script.
     uglify: {
+      options: {
+            mangle: false
+      },      
       minlibs: {
-        options: {
-            mangle: false,
-        },
         files: {
           'dist/h264bsd.min.js': ['h264bsd_asm.js',' sylvester.js', 'glUtils.js', 'util.js', 'canvas.js', 'h264bsd.js']
         }
       }
     },   
-
-    concat: {
-      pack: {
-        src: ['h264bsd_asm.js',' sylvester.js', 'glUtils.js', 'util.js', 'canvas.js', 'h264bsd.js'],
-        dest: 'dist/h264bsd.min.js'
-      }
-    },
    
     //grunt-clean
     clean: {
@@ -37,5 +27,5 @@ module.exports = function(grunt) {
     
 
   // Default task.
-  grunt.registerTask('default', ['clean', 'concat']);
+  grunt.registerTask('default', ['clean', 'uglify']);
 };
