@@ -69,7 +69,7 @@ void h264bsdShutdown(storage_t *pStorage);
 u8* h264bsdNextOutputPicture(storage_t *pStorage, u32 *picId, u32 *isIdrPic,
     u32 *numErrMbs);
 
-u8* h264bsdNextOutputPictureRGB(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs, u32 *length);
+u8* h264bsdNextOutputPictureARGB(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs, u32 *length);
 
 u32 h264bsdPicWidth(storage_t *pStorage);
 u32 h264bsdPicHeight(storage_t *pStorage);

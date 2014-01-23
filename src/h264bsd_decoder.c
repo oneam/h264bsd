@@ -626,10 +626,10 @@ u8* h264bsdNextOutputPicture(storage_t *pStorage, u32 *picId, u32 *isIdrPic,
 
 /*------------------------------------------------------------------------------
 
-    Function: h264bsdNextOutputPictureRGB
+    Function: h264bsdNextOutputPictureARGB
 
         Functional description:
-            Get next output picture in display order, converted from YUV to RGB.
+            Get next output picture in display order, converted from YUV to ARGB.
             Freeing the resulting buffer is the callers responsibility.
 
         Inputs:
@@ -647,7 +647,7 @@ u8* h264bsdNextOutputPicture(storage_t *pStorage, u32 *picId, u32 *isIdrPic,
             NULL if no pictures available for display
 
 ------------------------------------------------------------------------------*/
-u8* h264bsdNextOutputPictureRGB(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs, u32 *length)
+u8* h264bsdNextOutputPictureARGB(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs, u32 *length)
 {
     /* Variables */
 
@@ -1060,25 +1060,47 @@ void h264bsdFree(storage_t *pStorage)
     free(pStorage);
 }
 
-int clamp(int input, int max, int min) {
-    return input > max ? max : input < min ? min : input;
+void yuvtorgb(int Y, int U, int V, u8 *rgb)
+{
+	int r, g, b, c, d, e;
+	
+    c = Y - 16;
+    d = U - 128;
+    e = V - 128;
+    r = 1.164383 * c                   + 1.596027 * e ;
+    g = 1.164383 * c - (0.391762 * d) - (0.812968 * e);
+    b = 1.164383 * c +  2.017232 * d                  ;
+   
+    rgb[0] = 0xff;
+    rgb[1] = CLIP1(r);
+	rgb[2] = CLIP1(g);
+	rgb[3] = CLIP1(b);
 }
+
 
 u8* yuv2rgb(storage_t *pStorage, u8* yuvBytes)
 {
+    int x;    
+    int i,j;
+
+    u8* y = yuvBytes;
+    u8* u = 0;
+    u8* v = 0;
+    u8* out = 0;
+    
     int w = h264bsdPicWidth(pStorage) * 16;
-    int h = h264bsdPicHeight(pStorage) * 16;
-    int rgbLength = w*h*4;
-    u8 * rgb = NULL;
-    
-   int y1,y2,u,v,ruv,guv,buv,j,r=0;
-    int w_2 = w >> 1;
     int W = w*4;
-    
+    int w_2 = w/2;
+    int h = h264bsdPicHeight(pStorage) * 16;
+
+    int rgbLength = w*h*4;
 
     int uoffset = w*h;
     int voffset = w*h+((w*h)>>2);
     int luma = 0;
+    
+    u = yuvBytes+uoffset;
+    v = yuvBytes+voffset;
 
     if (pStorage->rgbConversionBuffer != NULL && pStorage->rgbConversionBufferLength != rgbLength)
     {
@@ -1094,54 +1116,34 @@ u8* yuv2rgb(storage_t *pStorage, u8* yuvBytes)
         pStorage->rgbConversionBufferLength = rgbLength;
     }
 
-    rgb = pStorage->rgbConversionBuffer;
+    out = pStorage->rgbConversionBuffer;
 
-    
+    for(; h -= 2;){
+        for(j = w_2; j--; ) {
+		    int u,v,y1,y2;
+            
+            y2 = yuvBytes[luma + w];
+            y1 = yuvBytes[luma++];
 
-    for(; h-=2;)
-    {        
-        for(j = w_2; j--; )
-        {
             u = yuvBytes[uoffset++];
             v = yuvBytes[voffset++];
 
-            ruv = 409*u-56992;
-            guv = 34784-208*u-100*v;
-            buv = 516*v-70688;
+		    yuvtorgb(y2, u, v, out);	
+            yuvtorgb(y1, u, v, (out+W));
 
-            y2 = yuvBytes[luma + w]*298;
-            y1 = yuvBytes[luma++]*298;
-            
-            rgb[r+W] = 0xff;
-            rgb[r++] = 0xff;
-            rgb[r+W] = y2+ruv>>8;
-            rgb[r++] = y1+ruv>>8;
-            rgb[r+W] = y2+guv>>8;
-            rgb[r++] = y1+guv>>8;
-            rgb[r+W] = y2+buv>>8;
-            rgb[r++] = y1+buv>>8;
+            out += 4;
 
-            y2 = yuvBytes[luma + w]*298;
-            y1 = yuvBytes[luma++]*298;
-            rgb[r+W] = 0xff;
-            rgb[r++] = 0xff;
-            rgb[r+W] = y2+ruv>>8;
-            rgb[r++] = y1+ruv>>8;
-            rgb[r+W] = y2+guv>>8;
-            rgb[r++] = y1+guv>>8;
-            rgb[r+W] = y2+buv>>8;
-            rgb[r++] = y1+buv>>8;
+            y2 = yuvBytes[luma + w];
+            y1 = yuvBytes[luma++];
+
+            yuvtorgb(y2, u, v, out);	
+            yuvtorgb(y1, u, v, (out+W));
+
+            out += 4;
         }
 
-        r += W;
         luma += w;
-    }
-
-
-    
-
-   
-   
-
+        out += W;
+	}
     return pStorage->rgbConversionBuffer;
 }
