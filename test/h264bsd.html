@@ -17,29 +17,45 @@
     <!--<script src="../js/dist/h264bsd.min.js"></script>-->
     <script type="text/javascript">
     	var canvas = document.getElementById('canvas');    	
-    	var d = new H264Decoder(Module, canvas);
+    	var d = new H264Decoder(Module, canvas, true);
     	canvas.addEventListener("pictureReady", function(e){
 
 			if (e.detail.picture == null){
 				return;
-			}
-			if (e.detail.encoding != 'YUV'){
-				return;
-			}
+			}			
 
 			var bytes = e.detail.picture;			
 			var width = e.detail.width;
 			var height = e.detail.height;
 
-			var wgc = new YUVWebGLCanvas(canvas, new Size(width, height));
-				
-			var lumaSize = width * height;
-			var chromaSize = lumaSize >> 2;
+			if (e.detail.encoding === 'YUV'){
+				var wgc = new YUVWebGLCanvas(canvas, new Size(width, height));
+				var lumaSize = width * height;
+				var chromaSize = lumaSize >> 2;
 
-		    wgc.YTexture.fill(bytes.subarray(0, lumaSize), true);
-		    wgc.UTexture.fill(bytes.subarray(lumaSize, lumaSize + chromaSize), true);
-		    wgc.VTexture.fill(bytes.subarray(lumaSize + chromaSize, lumaSize + 2 * chromaSize), true);
-		    wgc.drawScene();
+			    wgc.YTexture.fill(bytes.subarray(0, lumaSize), true);
+			    wgc.UTexture.fill(bytes.subarray(lumaSize, lumaSize + chromaSize), true);
+			    wgc.VTexture.fill(bytes.subarray(lumaSize + chromaSize, lumaSize + 2 * chromaSize), true);
+			    wgc.drawScene();
+
+			} else if (e.detail.encoding === 'RGB'){
+				var buf = document.createElement('canvas');
+				var bufCtx = buf.getContext('2d');
+				var imageData = bufCtx.createImageData(width, height);
+				var out = imageData.data;
+				
+				for (var i = 0; i < bytes.length; i++){
+					out[i] = bytes[i];
+				}
+				console.log(out);
+
+				canvas.height = height;
+				canvas.width = width;
+				canvas.style.height = height;
+				canvas.style.width = width;
+				var oc = canvas.getContext('2d');
+				oc.putImageData(imageData, 0,0);
+			}
 
     	});
 

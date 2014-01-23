@@ -23,17 +23,56 @@
 /*
  * This class wraps the details of the h264bsd library.
  */
-function H264Decoder(Module, targetCanvas) {
+function H264Decoder(Module, targetCanvas, forceRGB) {
 	var self = this;	
 	self.Module = Module;
 	self.released = false;
 	self.yuvCanvas = null;
 	self.pStorage = H264Decoder.h264bsdAlloc(self.Module);
 	H264Decoder.h264bsdInit(self.Module, self.pStorage, 0);
-	self.targetCanvas = targetCanvas;
-	self.useWebGL = H264Decoder.detectWebGl();
-};
+	self.targetCanvas = targetCanvas;	
+	if (forceRGB){
+		self.useWebGL = false;
+		self.precision = 32768;
+		self.co_y = Math.floor((1.165 * self.precision) + 0.5);
+		self.co_rv = Math.floor((1.596 * self.precision) + 0.5);
+		self.co_gu = Math.floor((0.391 * self.precision) + 0.5);
+		self.co_gv = Math.floor((0.813 * self.precision) + 0.5);
+		self.co_bu = Math.floor((2.018 * self.precision) + 0.5);
 
+		self.coefficients_y = [];
+		for(var i = 0; i < 256; i++)
+		{
+			self.coefficients_y[i] = self.co_y * (i - 16) + (self.precision / 2);
+		}
+
+		self.coefficients_rv = [];
+		for(var i = 0; i < 256; i++)
+		{
+			self.coefficients_rv[i] = self.co_rv * (i - 128);
+		}
+
+		self.coefficients_gu = [];
+		for(var i = 0; i < 256; i++)
+		{
+			self.coefficients_gu[i] = self.co_gu * (i - 128);
+		}
+
+		self.coefficients_gv = [];
+		for(var i = 0; i < 256; i++)
+		{
+			self.coefficients_gv[i] = self.co_gv * (i - 128);
+		}
+
+		self.coefficients_bu = [];
+		for(var i = 0; i < 256; i++)
+		{
+			self.coefficients_bu[i] = self.co_bu * (i - 128);
+		}
+	}else{
+		self.useWebGL = H264Decoder.detectWebGl();	
+	}	
+};
 
 H264Decoder.RDY = 0;
 H264Decoder.PIC_RDY = 1;
@@ -41,8 +80,6 @@ H264Decoder.HDRS_RDY = 2;
 H264Decoder.ERROR = 3;
 H264Decoder.PARAM_SET_ERROR = 4;
 H264Decoder.MEMALLOC_ERROR = 5;
-
-
 
 H264Decoder.prototype.release = function() {
 	var self = this;
@@ -81,7 +118,6 @@ H264Decoder.prototype.decode = function(data) {
 
 		retCode = H264Decoder.h264bsdDecode(self.Module, self.pStorage, pData, length, lastPicId, pBytesRead);		
 		bytesRead = self.Module.getValue(pBytesRead, 'i32');
-		console.log('retCode: ', retCode, 'bytesRead: ', bytesRead);
 		switch(retCode){
 			case H264Decoder.PIC_RDY:
 				lastPicId++;
@@ -216,7 +252,7 @@ H264Decoder.convertYUV2RGB = function(yuvBytes, croppingInfo){
 	var width = croppingInfo.width - croppingInfo.left;
 	var height = croppingInfo.height - croppingInfo.top;
 
-	var rgbBytes = new Uint8Array();
+	var rgbBytes = new Uint8Array(4 * height * width);
 
 	var cb = width * height;
 	var cr = cb + ((width * height) / 2);	
@@ -230,13 +266,13 @@ H264Decoder.convertYUV2RGB = function(yuvBytes, croppingInfo){
 	{
 		k += 1;
 
-		var y1 = yuvBytes[i] & 0xff;
-		var y2 = yuvBytes[i + 1] & 0xff;
-		var y3 = yuvBytes[width + i] & 0xff;
-		var y4 = yuvBytes[width + i + 1] & 0xff;
+		var y1 = yuvBytes[i];// & 0xff;
+		var y2 = yuvBytes[i + 1];// & 0xff;
+		var y3 = yuvBytes[width + i];// & 0xff;
+		var y4 = yuvBytes[width + i + 1];// & 0xff;
 		
-		var v = yuvBytes[cr + k] & 0xff;
-		var u = yuvBytes[cb + k] & 0xff;
+		var v = yuvBytes[cr + k];// & 0xff;
+		var u = yuvBytes[cb + k];// & 0xff;
 		
 		v = v - 128;
 		u = u - 128;
