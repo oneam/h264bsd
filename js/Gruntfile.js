@@ -11,6 +11,13 @@ module.exports = function(grunt) {
         }
       }
     },   
+
+    concat: {
+      libs: {
+        src:  ['h264bsd_asm.js',' sylvester.js', 'glUtils.js', 'util.js', 'canvas.js', 'h264bsd.js'],
+        dest: 'dist/h264bsd.min.js'
+      }
+    },
    
     //grunt-clean
     clean: {
