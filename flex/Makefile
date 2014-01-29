@@ -3,7 +3,7 @@ SOURCES = $(wildcard ../src/*.c) main.c
 FLASCC:=X
 FLEX:=X
 AS3COMPILER:=asc2.jar
-BASE_CFLAGS:=-Wno-write-strings -Wno-trigraphs -DFLASCC -04 --emit-llvm
+BASE_CFLAGS:=-DFLASCC -O4
 
 $?UNAME=$(shell uname -s)
 ifneq (,$(findstring CYGWIN,$(UNAME)))

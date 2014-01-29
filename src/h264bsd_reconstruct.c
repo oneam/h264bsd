@@ -2137,11 +2137,34 @@ static void FillRow1(
   i32 center,
   i32 right)
 {
+    int i = 0;    
+    u8 *pdest = (u8*) fill;
+    u8 *psrc = (u8*) ref;
+    int loops = (center / sizeof(u32));
 
     ASSERT(ref);
     ASSERT(fill);
 
-    memcpy(fill, ref, (u32)center);
+    
+
+
+    for(i = 0; i < loops; ++i)
+    {
+        *((u32*)pdest) = *((u32*)psrc);
+        pdest += sizeof(u32);
+        psrc += sizeof(u32);
+    }
+
+    loops = (center % sizeof(u32));
+    for (i = 0; i < loops; ++i)
+    {
+        *pdest = *psrc;
+        ++pdest;
+        ++psrc;
+    }
+
+    // XXX CrossBridge Optimization
+    // memcpy(fill, ref, center);
 
     /*lint -e(715) */
 }
@@ -2286,27 +2309,58 @@ void h264bsdFillBlock(
     bottom = ystop > (i32)height ? ystop - (i32)height : 0;
     y = (i32)blockHeight - top - bottom;
 
-    /* Top-overfilling */
-    for ( ; top; top-- )
+    if (x0 >= 0 && xstop <= (i32)width)
     {
-        (*fp)(ref, fill, left, x, right);
-        fill += fillScanLength;
+        for ( ; top; top-- )
+        {
+            FillRow1(ref, fill, left, x, right);
+            fill += fillScanLength;
+        }
+        for ( ; top; top-- )
+        {
+            FillRow1(ref, fill, left, x, right);            
+        }
+        for ( ; y; y-- )
+        {
+            FillRow1(ref, fill, left, x, right);
+            ref += width;
+            fill += fillScanLength;
+        }
     }
+    else
+    {
+        for ( ; top; top-- )
+        {
+            h264bsdFillRow7(ref, fill, left, x, right);
+            fill += fillScanLength;
+        }
+        for ( ; top; top-- )
+        {
+            h264bsdFillRow7(ref, fill, left, x, right);            
+        }
+        for ( ; y; y-- )
+        {
+            h264bsdFillRow7(ref, fill, left, x, right);
+            ref += width;
+            fill += fillScanLength;
+        }
+    }
+    /* Top-overfilling */
+    
 
     /* Lines inside reference image */
-    for ( ; y; y-- )
-    {
-        (*fp)(ref, fill, left, x, right);
-        ref += width;
-        fill += fillScanLength;
-    }
+    
 
     ref -= width;
 
     /* Bottom-overfilling */
     for ( ; bottom; bottom-- )
     {
-        (*fp)(ref, fill, left, x, right);
+        //(*fp)(ref, fill, left, x, right);
+        if (x0 >= 0 && xstop <= (i32)width)
+            FillRow1(ref, fill, left, x, right);
+        else
+            h264bsdFillRow7(ref, fill, left, x, right);
         fill += fillScanLength;
     }
 }

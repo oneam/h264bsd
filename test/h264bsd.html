@@ -1,0 +1,92 @@
+<!doctype html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>h.264bsd test</title>
+</head>
+<body>
+    <input type="file" id="file" name="file" /><br/>
+
+    <!--This is where we will display decoded frames-->
+    <canvas id="canvas" width="640" height="480" style="border:solid;"></canvas>
+
+    <script src="../js/h264bsd_asm.js"></script>
+    <script src="../js/sylvester.js"></script>
+    <script src="../js/glUtils.js"></script>
+    <script src="../js/util.js"></script>
+    <script src="../js/canvas.js"></script>    
+    <script src="../js/h264bsd.js"></script>
+       
+    <!--<script src="../js/dist/h264bsd.min.js"></script>--> 
+
+    <script type="text/javascript">        	
+    	var canvas = document.getElementById('canvas');    	    	
+    	
+    	//Create / init the decoder
+    	var d = new H264Decoder(Module, canvas, false);
+
+    	//The element we passed into the H264Decoder constructor (canvas), will emit 'pictureReady' events
+    	canvas.addEventListener("pictureReady", function(e){
+			if (e.detail.picture == null){
+				return;
+			}			
+
+			var bytes = e.detail.picture;			
+			var width = e.detail.width;
+			var height = e.detail.height;
+
+			//The picture will be encoded as YUV or RGB depending on 1) the 3rd param of the H264Decoder constructor,
+			//2) Support for the WebGL canvas in the browser.
+			if (e.detail.encoding === 'YUV'){
+				var wgc = new YUVWebGLCanvas(canvas, new Size(width, height));
+				var lumaSize = width * height;
+				var chromaSize = lumaSize >> 2;
+
+			    wgc.YTexture.fill(bytes.subarray(0, lumaSize), true);
+			    wgc.UTexture.fill(bytes.subarray(lumaSize, lumaSize + chromaSize), true);
+			    wgc.VTexture.fill(bytes.subarray(lumaSize + chromaSize, lumaSize + 2 * chromaSize), true);
+			    wgc.drawScene();
+
+			} else if (e.detail.encoding === 'RGB'){
+				var buf = document.createElement('canvas');
+				var bufCtx = buf.getContext('2d');
+				var imageData = bufCtx.createImageData(width, height);
+				var out = imageData.data;
+				
+				for (var i = 0; i < bytes.length; i++){
+					out[i] = bytes[i];
+				}
+				console.log(out);
+
+				canvas.height = height;				
+				canvas.width = width;
+
+				canvas.style.height = height;
+				canvas.style.width = width;
+
+				var oc = canvas.getContext('2d');
+				oc.putImageData(imageData, 0,0);
+			}
+
+    	});
+
+		//Use the FileReader to get the bytes into the decoder
+		function handleFileSelect(evt) {
+		    var f = evt.target.files[0]; // FileList object
+			
+			var reader = new FileReader();
+
+			// Closure to capture the file information.
+			reader.onload = function(e) {
+				var buf = e.target.result;							
+				d.decode(buf);			
+			};
+
+			// Read in the image file as a data URL.
+			reader.readAsArrayBuffer(f);
+		}		  
+
+ 		document.getElementById('file').addEventListener('change', handleFileSelect, false);
+    </script>
+</body>
+</html>

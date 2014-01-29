@@ -1,0 +1,16 @@
+{
+  "name": "h264bsd_dist_builder",
+  "description": "Minifies and concatenates all of the files needed for H264Bsd.js",
+  "version": "0.0.1",
+  "private": true,
+  "author": {
+    "name": "Chris Jarabek",
+    "email": "chris.jarabek@gmail.com"
+  },
+  "dependencies": {
+    "grunt" : "*",
+    "grunt-contrib-uglify": "*", 
+    "grunt-contrib-clean": "*"
+  },
+  "title": "H264BSD"
+}

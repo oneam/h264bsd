@@ -1,6 +1,6 @@
 
 rule '.o' => ['.c'] do |t|
-  sh "emcc #{t.source} -O2 -c -o #{t.name}"
+  sh "emcc #{t.source} -c -g4 -O0 -D_ASSERT_USED -D_DEBUG_PRINT -D_ERROR_PRINT -o #{t.name}"
 end
 
 o_files = FileList["../src/*.c"].gsub(/c$/, 'o')
@@ -19,7 +19,7 @@ export_functions = [
 ]
 
 file "h264bsd_asm.js" => o_files do
-	sh "emcc #{o_files.join(' ')} -s EXPORTED_FUNCTIONS='[\"#{export_functions.join('", "')}\"]' -O2 -o h264bsd_asm.js"
+	sh "emcc #{o_files.join(' ')} -s TOTAL_MEMORY=268435456 -s EXPORTED_FUNCTIONS='[\"#{export_functions.join('", "')}\"]' -g4  -O0 -D_ASSERT_USED -D_DEBUG_PRINT -D_ERROR_PRINT -o h264bsd_asm.js"
 end
 
 task :clean do

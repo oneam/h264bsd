@@ -5,3 +5,4 @@ win/ipch/
 win/*.sdf
 *.user
 *.o
+node_modules
