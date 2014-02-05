@@ -1062,8 +1062,8 @@ void h264bsdFree(storage_t *pStorage)
 
 void yuvtorgb(int Y, int U, int V, u8 *rgb)
 {
-	int r, g, b, c, d, e;
-	
+    int r, g, b, c, d, e;
+    
     c = Y - 16;
     d = U - 128;
     e = V - 128;
@@ -1073,8 +1073,8 @@ void yuvtorgb(int Y, int U, int V, u8 *rgb)
    
     rgb[0] = 0xff;
     rgb[1] = CLIP1(r);
-	rgb[2] = CLIP1(g);
-	rgb[3] = CLIP1(b);
+    rgb[2] = CLIP1(g);
+    rgb[3] = CLIP1(b);
 }
 
 
@@ -1117,10 +1117,10 @@ u8* yuv2rgb(storage_t *pStorage, u8* yuvBytes)
     }
 
     out = pStorage->rgbConversionBuffer;
-
+    
     for(; h -= 2;){
         for(j = w_2; j--; ) {
-		    int u,v,y1,y2;
+            int u,v,y1,y2;
             
             y2 = yuvBytes[luma + w];
             y1 = yuvBytes[luma++];
@@ -1128,22 +1128,23 @@ u8* yuv2rgb(storage_t *pStorage, u8* yuvBytes)
             u = yuvBytes[uoffset++];
             v = yuvBytes[voffset++];
 
-		    yuvtorgb(y2, u, v, out);	
-            yuvtorgb(y1, u, v, (out+W));
-
+            yuvtorgb(y1, u, v, out);    
+            yuvtorgb(y2, u, v, (out+W));
+           
             out += 4;
 
             y2 = yuvBytes[luma + w];
             y1 = yuvBytes[luma++];
 
-            yuvtorgb(y2, u, v, out);	
-            yuvtorgb(y1, u, v, (out+W));
+            yuvtorgb(y1, u, v, out);    
+            yuvtorgb(y2, u, v, (out+W));
 
             out += 4;
         }
 
         luma += w;
         out += W;
-	}
+    }
+   
     return pStorage->rgbConversionBuffer;
 }
