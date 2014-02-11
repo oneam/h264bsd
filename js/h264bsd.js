@@ -194,13 +194,19 @@ H264Decoder.prototype.getNextOutputPicture = function(){
 		    encoding: 'YUV',
 		    picture: bytes, 
 		    height: croppingInfo.height, 
-		    width: croppingInfo.width};
+		    width: croppingInfo.width,
+		    mbWidth: (H264Decoder.h264bsdPicWidth_(self.Module, self.pStorage)*16),
+		    mbHeight: (H264Decoder.h264bsdPicHeight_(self.Module, self.pStorage)*16)
+		};		
     }else{
 		ret = {
 			encoding: 'RGB',
 		    picture: H264Decoder.convertYUV2RGB_(bytes, croppingInfo, self), 
 		    height: croppingInfo.height, 
-		    width: croppingInfo.width};
+		    width: croppingInfo.width,
+  		    mbWidth: (H264Decoder.h264bsdPicWidth_(self.Module, self.pStorage)*16),
+		    mbHeight: (H264Decoder.h264bsdPicHeight_(self.Module, self.pStorage)*16)
+		};
     }
     
     return ret; 
@@ -209,11 +215,36 @@ H264Decoder.prototype.getNextOutputPicture = function(){
 
 H264Decoder.getCroppingInfo_ = function(Module, pStorage){
 	var self = this;
+	
+	var pCroppingFlag = H264Decoder.malloc_(Module, 4);
+	var croppingFlag = 0;
+
+	var pLeftOffset = H264Decoder.malloc_(Module, 4);
+	var leftOffset = 0;
+
+	var pWidth = H264Decoder.malloc_(Module, 4);
+	var width = 0;
+
+	var pTopOffset = H264Decoder.malloc_(Module, 4);
+	var topOffset = 0;
+
+	var pHeight = H264Decoder.malloc_(Module, 4);
+	var height = 0;
+
+
+	H264Decoder.h264bsdCroppingParams_(Module, pStorage, pCroppingFlag, pLeftOffset, pWidth, pTopOffset, pHeight);
+	
+	croppingFlag = Module.getValue(pCroppingFlag, 'i32');	
+	leftOffset = Module.getValue(pLeftOffset, 'i32');	
+	width = Module.getValue(pWidth, 'i32');
+	topOffset = Module.getValue(pTopOffset, 'i32');
+	height = Module.getValue(pHeight, 'i32');
+
 	var result = {
-		'width': (H264Decoder.h264bsdPicWidth_(Module, pStorage)*16),
-		'height': (H264Decoder.h264bsdPicHeight_(Module, pStorage)*16),
-		'top': 0,
-		'left': 0
+		'width': width,
+		'height': height,
+		'top': topOffset,
+		'left': leftOffset
 	};
 	return result;
 };
