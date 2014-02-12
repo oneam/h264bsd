@@ -189,23 +189,25 @@ H264Decoder.prototype.getNextOutputPicture = function(){
     var croppingInfo = H264Decoder.getCroppingInfo_(self.Module, self.pStorage);
 
     //Return bytes according to the requested format
+    var mbWidth = H264Decoder.h264bsdPicWidth_(self.Module, self.pStorage)*16;
+    var mbHeight = H264Decoder.h264bsdPicHeight_(self.Module, self.pStorage)*16;
     if (self.useWebGL){
 		ret = {
 		    encoding: 'YUV',
 		    picture: bytes, 
 		    height: croppingInfo.height, 
 		    width: croppingInfo.width,
-		    mbWidth: (H264Decoder.h264bsdPicWidth_(self.Module, self.pStorage)*16),
-		    mbHeight: (H264Decoder.h264bsdPicHeight_(self.Module, self.pStorage)*16)
+		    mbWidth: mbWidth,
+		    mbHeight: mbHeight
 		};		
     }else{
 		ret = {
 			encoding: 'RGB',
-		    picture: H264Decoder.convertYUV2RGB_(bytes, croppingInfo, self), 
+		    picture: H264Decoder.convertYUV2RGB_(bytes, croppingInfo, self, mbWidth, mbHeight),
 		    height: croppingInfo.height, 
 		    width: croppingInfo.width,
-  		    mbWidth: (H264Decoder.h264bsdPicWidth_(self.Module, self.pStorage)*16),
-		    mbHeight: (H264Decoder.h264bsdPicHeight_(self.Module, self.pStorage)*16)
+  		    mbWidth: mbWidth,
+		    mbHeight: mbHeight
 		};
     }
     
@@ -279,9 +281,9 @@ H264Decoder.detectWebGl_ = function()
 };
 
 //If WebGL Canvas is not availble, this will convert an array of yuv bytes into an array of rgb bytes
-H264Decoder.convertYUV2RGB_ = function(yuvBytes, croppingInfo, exCtx){
-	var width = croppingInfo.width - croppingInfo.left;
-	var height = croppingInfo.height - croppingInfo.top;
+H264Decoder.convertYUV2RGB_ = function(yuvBytes, croppingInfo, exCtx, mbWidth, mbHeight){
+	var width = mbWidth - croppingInfo.left;
+	var height = mbHeight - croppingInfo.top;
 	var rgbBytes = new Uint8ClampedArray(4 * height * width);
 
 	var lumaSize = width * height;
