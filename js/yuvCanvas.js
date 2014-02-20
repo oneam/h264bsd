@@ -25,16 +25,19 @@
  * This class grabs content from a video element and feeds it to a canvas element.
  * The content is modified using a custom WebGL shader program.
  */
-function YUVCanvas(canvas) {
+function YUVCanvas(canvas, Module) {
+    this.Module = Module;
     this.canvasElement = canvas;
     this.initGlContext();
     
-    if(this.glContext) {
+    if(this.contextGl) {
         this.initProgram();
         this.initBuffers();
         this.initTextures();
     } else {
-        // TODO: Fill in the non-WebGL initialization here.
+        this.context2D = canvas.getContext('2d');
+        this.rgbBufferSize = 0;
+        this.rgbBufferPtr = 0;
     }
 }
 
@@ -64,14 +67,14 @@ YUVCanvas.prototype.initGlContext = function() {
         ++i;
     }
  
-    this.glContext = gl;
+    this.contextGl = gl;
 }
 
 /**
  * Initialize GL shader program
  */
 YUVCanvas.prototype.initProgram = function() {
-    var gl = this.glContext;
+    var gl = this.contextGl;
 
     var vertexShaderScript = [
         'attribute vec4 vertexPos;',
@@ -138,7 +141,7 @@ YUVCanvas.prototype.initProgram = function() {
  * Initialize vertex buffers and attach to shader program
  */
 YUVCanvas.prototype.initBuffers = function() {
-    var gl = this.glContext;
+    var gl = this.contextGl;
     var program = this.shaderProgram;
 
     var vertexPosBuffer = gl.createBuffer();
@@ -162,7 +165,7 @@ YUVCanvas.prototype.initBuffers = function() {
  * Initialize GL textures and attach to shader program
  */
 YUVCanvas.prototype.initTextures = function() {
-    var gl = this.glContext;
+    var gl = this.contextGl;
     var program = this.shaderProgram;
 
     var yTextureRef = this.initTexture();
@@ -199,21 +202,21 @@ YUVCanvas.prototype.initTexture = function() {
 /**
  * Draw yuvData in the best way possible
  */
-YUVCanvas.prototype.draw = function(yuvData, size) {
-    var gl = this.glContext;
+YUVCanvas.prototype.draw = function(pYuvData, size) {
+    var gl = this.contextGl;
 
     if(gl) {
-        this.drawGl(yuvData, size);
+        this.drawGl(pYuvData, size);
     } else {
-        // TODO: Create a non-WebGL YUV conversion.
+        this.drawARGB(pYuvData, size);
     }
 }
 
 /**
  * Setup GL viewport and draw the yuvData
  */
-YUVCanvas.prototype.drawGL = function(yuvData, size) {
-    var gl = this.glContext;
+YUVCanvas.prototype.drawGL = function(pYuvData, size) {
+    var gl = this.contextGl;
     var yTextureRef = this.yTextureRef;
     var uTextureRef = this.uTextureRef;
     var vTextureRef = this.vTextureRef;
@@ -222,15 +225,68 @@ YUVCanvas.prototype.drawGL = function(yuvData, size) {
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, yTextureRef);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, size.w, size.h, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, yuvData);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, size.w, size.h, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, pYuvData);
 
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, uTextureRef);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, size.w/2, size.h/2, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, yuvData);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, size.w/2, size.h/2, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, pYuvData);
 
     gl.activeTexture(gl.TEXTURE2);
     gl.bindTexture(gl.TEXTURE_2D, vTextureRef);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, size.w/2, size.h/2, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, yuvData);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, size.w/2, size.h/2, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, pYuvData);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); 
 }
+
+/**
+ * Convert yuvData to ARGB data and draw to canvas
+ */
+YUVCanvas.prototype.drawARGB = function(pYuvData, size) {
+    var ctx = this.context2D;
+    var rgbBufferSize = this.rgbBufferSize;
+    var rgbBufferPtr = this.rgbBufferPtr;
+    var imageData = this.imageData;
+
+    var rgbSize = size.w * size.h * 4;
+
+    if(rgbBufferSize < rgbSize) {
+        if(rgbBufferPtr != 0) this.free(rgbBufferPtr);
+
+        rgbBufferSize = rgbSize;
+        rgbBufferPtr = this.malloc(rgbBufferSize);
+
+        this.rgbBufferSize = rgbBufferSize;
+        this.rgbBufferPtr = rgbBufferPtr;
+    }
+
+    this.h264bsdConvertToARGB(size.w, size.h, pYuvData, pRgbData);
+
+    if(!imageData || 
+        imageData.width != size.w || 
+        imageData.height != size.h) {
+        imageData = ctx.createImageData(size.w, size.h);
+        this.imageData = imageData;
+    }
+
+    var rgbData = this.Module.HEAPU8.subarray(rgbBufferPtr, rgbBufferPtr + rgbSize);
+    imageData.data.set(rgbData);
+    ctx.putImageData(imageData, 0, 0);
+}
+
+//void h264bsdConvertToARGB(u32 width, u32 height, u8* data, u32 *rgbData);
+YUVCanvas.prototype.h264bsdConvertToARGB = function(width, height, pData, pRgbData) {
+    this.Module.ccall('h264bsdConvertToARGB', 
+        Number, 
+        [Number, Number, Number, Number], 
+        [width, height, pData, pRgbData]);
+};
+
+// void* malloc(size_t size);
+YUVCanvas.prototype.malloc = function(size) {
+    return this.Module.ccall('malloc', Number, [Number], [size]);
+};
+
+// void free(void* ptr);
+YUVCanvas.prototype.free = function(ptr) {
+    this.Module.ccall('free', null, [Number], [ptr]);
+};
