@@ -4,6 +4,7 @@ EXPORTS
     h264bsdDecode
     h264bsdShutdown
     h264bsdNextOutputPicture
+    h264bsdNextOutputPictureARGB
     h264bsdPicWidth
     h264bsdPicHeight
     h264bsdVideoRange
@@ -14,3 +15,5 @@ EXPORTS
     h264bsdFlushBuffer
     h264bsdAlloc
     h264bsdFree
+    h264bsdConvertToARGB
+    

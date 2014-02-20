@@ -1056,6 +1056,9 @@ void h264bsdFree(storage_t *pStorage)
         Functional description:
             Convert decoded image data ARGB format.
             ARGB format uses u32 pixels where the MSB is alpha.
+            *Note* While this function is available, it is not heavily optimized.
+            If possible, you should use decoded image data directly. 
+            This function should only be used when there is no other way to get ARGB data.
 
         Inputs:
             width       width of the image in pixels
