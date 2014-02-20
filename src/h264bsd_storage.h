@@ -147,8 +147,8 @@ typedef struct storage
                               HEADERS_RDY to the user */
     u32 intraConcealmentFlag; /* 0 gray picture for corrupted intra
                                  1 previous frame used if available */
-    u8* rgbConversionBuffer; // used to performance yuv conversion
-    int rgbConversionBufferLength;
+    u32* rgbConversionBuffer; // used to performance yuv conversion
+    size_t rgbConversionBufferSize;
 } storage_t;
 
 /*------------------------------------------------------------------------------

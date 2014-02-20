@@ -12,10 +12,12 @@ export_functions = [
 	"_h264bsdDecode",
 	"_h264bsdShutdown",
 	"_h264bsdNextOutputPicture",
+	"_h264bsdNextOutputPictureARGB",
 	"_h264bsdPicWidth",
 	"_h264bsdPicHeight",
 	"_h264bsdCroppingParams",
-	"_h264bsdCheckValidParamSets"
+	"_h264bsdCheckValidParamSets",
+	"_h264bsdConvertToARGB",
 ]
 
 file "h264bsd_asm.js" => o_files do

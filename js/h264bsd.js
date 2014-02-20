@@ -383,6 +383,22 @@ H264Decoder.h264bsdCheckValidParamSets_ = function(Module, pStorage){
 	return Module.ccall('h264bsdCheckValidParamSets', Number, [Number], [pStorage]);
 };
 
+// u32* h264bsdNextOutputPictureARGB(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs);
+H264Decoder.h264bsdNextOutputPictureARGB_ = function(Module, pStorage, pPicId, pIsIdrPic, pNumErrMbs){
+	return Module.ccall('h264bsdNextOutputPictureARGB', 
+		Number, 
+		[Number, Number, Number, Number], 
+		[pStorage, pPicId, pIsIdrPic, pNumErrMbs]);
+};
+
+//void h264bsdConvertToARGB(u32 width, u32 height, u8* data, u32 *rgbData);
+H264Decoder.h264bsdConvertToARGB_ = function(Module, width, height, pData, pRgbData){
+	Module.ccall('h264bsdConvertToARGB', 
+		Number, 
+		[Number, Number, Number, Number], 
+		[width, height, pData, pRgbData]);
+};
+
 // void* malloc(size_t size);
 H264Decoder.malloc_ = function(Module, size){
 	return Module.ccall('malloc', Number, [Number], [size]);
