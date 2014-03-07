@@ -1,6 +1,6 @@
 
 rule '.o' => ['.c'] do |t|
-  sh "emcc #{t.source} -c -g4 -O0 -D_ASSERT_USED -D_DEBUG_PRINT -D_ERROR_PRINT -o #{t.name}"
+  sh "emcc #{t.source} -c -g4 -O0 -D_ASSERT_USED -D_ERROR_PRINT -o #{t.name}"
 end
 
 o_files = FileList["../src/*.c"].gsub(/c$/, 'o')

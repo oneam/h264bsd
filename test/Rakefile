@@ -1,0 +1,9 @@
+
+desc "Download raw test data"
+task :download_raw do
+    (5208..5280).each do |filenum|
+        url = "http://media.xiph.org/BBB/BBB-1080-png/big_buck_bunny_0#{filenum}.png"
+        puts "Grabbing #{url}"
+        system("curl -O #{url}")
+    end
+end

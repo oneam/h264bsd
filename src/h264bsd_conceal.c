@@ -174,15 +174,23 @@ u32 h264bsdConceal(storage_t *pStorage, image_t *currImage, u32 sliceType)
     {
         if ( (IS_I_SLICE(sliceType) && (pStorage->intraConcealmentFlag == 0)) ||
              refData == NULL)
+        {
             memset(currImage->data, 128, width*height*384);
+        }
         else
         {
-            int ii = 0;
-            int size = width*height*384;
-            u8* curr_data = currImage->data;
-            for (ii = 0; ii < size;ii++);
-                curr_data[i] = refData[i];
+#ifndef CROSSBRIDGE
+            memcpy(currImage->data, refData, width*height*384);
+#else
+            inline_as3(
+                "var temp:ByteArray = new ByteArray();\n"
+                "CModule.readBytes(%0, %2, temp);\n"
+                "temp.position = 0;\n"
+                "CModule.writeBytes(%1, %2, temp);" 
+                : : "r" (currImage->data), "r" (refData), "r" (width*height*384));
+#endif
         }
+
         pStorage->numConcealedMbs = pStorage->picSizeInMbs;
 
         /* no filtering if whole picture concealed */

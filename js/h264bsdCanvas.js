@@ -23,14 +23,15 @@
 
 /**
  * This class grabs content from a video element and feeds it to a canvas element.
- * The content is modified using a custom WebGL shader program.
+ * If available the content is modified using a custom WebGL shader program.
+ * This class depends on the h264bsd_asm.js Module implementation.
  */
-function YUVCanvas(canvas, Module) {
+function H264bsdCanvas(canvas, Module, forceRGB) {
     this.Module = Module;
     this.canvasElement = canvas;
     this.initGlContext();
     
-    if(this.contextGl) {
+    if(this.contextGl && !forceRGB) {
         this.initProgram();
         this.initBuffers();
         this.initTextures();
@@ -44,7 +45,7 @@ function YUVCanvas(canvas, Module) {
 /**
  * Create the GL context from the canvas element
  */
-YUVCanvas.prototype.initGlContext = function() {
+H264bsdCanvas.prototype.initGlContext = function() {
     var canvas = this.canvasElement;
     var gl = null;
 
@@ -73,7 +74,7 @@ YUVCanvas.prototype.initGlContext = function() {
 /**
  * Initialize GL shader program
  */
-YUVCanvas.prototype.initProgram = function() {
+H264bsdCanvas.prototype.initProgram = function() {
     var gl = this.contextGl;
 
     var vertexShaderScript = [
@@ -140,7 +141,7 @@ YUVCanvas.prototype.initProgram = function() {
 /**
  * Initialize vertex buffers and attach to shader program
  */
-YUVCanvas.prototype.initBuffers = function() {
+H264bsdCanvas.prototype.initBuffers = function() {
     var gl = this.contextGl;
     var program = this.shaderProgram;
 
@@ -164,7 +165,7 @@ YUVCanvas.prototype.initBuffers = function() {
 /**
  * Initialize GL textures and attach to shader program
  */
-YUVCanvas.prototype.initTextures = function() {
+H264bsdCanvas.prototype.initTextures = function() {
     var gl = this.contextGl;
     var program = this.shaderProgram;
 
@@ -187,7 +188,7 @@ YUVCanvas.prototype.initTextures = function() {
 /**
  * Create and configure a single texture
  */
-YUVCanvas.prototype.initTexture = function() {
+H264bsdCanvas.prototype.initTexture = function() {
     var textureRef = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, textureRef);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -202,20 +203,20 @@ YUVCanvas.prototype.initTexture = function() {
 /**
  * Draw yuvData in the best way possible
  */
-YUVCanvas.prototype.draw = function(pYuvData, size) {
+H264bsdCanvas.prototype.drawNextPicture = function(pStorage) {
     var gl = this.contextGl;
 
     if(gl) {
-        this.drawGl(pYuvData, size);
+        this.drawNextPictureGl(pStorage);
     } else {
-        this.drawARGB(pYuvData, size);
+        this.drawNextPictureARGB(pStorage);
     }
 }
 
 /**
  * Setup GL viewport and draw the yuvData
  */
-YUVCanvas.prototype.drawGL = function(pYuvData, size) {
+H264bsdCanvas.prototype.drawNextPictureGl = function(pStorage) {
     var gl = this.contextGl;
     var yTextureRef = this.yTextureRef;
     var uTextureRef = this.uTextureRef;
@@ -241,7 +242,7 @@ YUVCanvas.prototype.drawGL = function(pYuvData, size) {
 /**
  * Convert yuvData to ARGB data and draw to canvas
  */
-YUVCanvas.prototype.drawARGB = function(pYuvData, size) {
+H264bsdCanvas.prototype.drawNextPictureARGB = function(pStorage) {
     var ctx = this.context2D;
     var rgbBufferSize = this.rgbBufferSize;
     var rgbBufferPtr = this.rgbBufferPtr;
@@ -274,19 +275,35 @@ YUVCanvas.prototype.drawARGB = function(pYuvData, size) {
 }
 
 //void h264bsdConvertToARGB(u32 width, u32 height, u8* data, u32 *rgbData);
-YUVCanvas.prototype.h264bsdConvertToARGB = function(width, height, pData, pRgbData) {
+H264bsdCanvas.prototype.h264bsdConvertToARGB = function(width, height, pData, pRgbData) {
     this.Module.ccall('h264bsdConvertToARGB', 
         Number, 
         [Number, Number, Number, Number], 
         [width, height, pData, pRgbData]);
 };
 
+// u8* h264bsdNextOutputPicture(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs);
+H264bsdCanvas.prototype.h264bsdNextOutputPicture_ = function(pStorage, pPicId, pIsIdrPic, pNumErrMbs) {
+    return this.Module.ccall('h264bsdNextOutputPicture', 
+        Number, 
+        [Number, Number, Number, Number], 
+        [pStorage, pPicId, pIsIdrPic, pNumErrMbs]);
+};
+
+// u32* h264bsdNextOutputPictureARGB(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs);
+H264bsdCanvas.prototype.h264bsdNextOutputPictureARGB_ = function(pStorage, pPicId, pIsIdrPic, pNumErrMbs){
+    return this.Module.ccall('h264bsdNextOutputPictureARGB', 
+        Number, 
+        [Number, Number, Number, Number], 
+        [pStorage, pPicId, pIsIdrPic, pNumErrMbs]);
+};
+
 // void* malloc(size_t size);
-YUVCanvas.prototype.malloc = function(size) {
+H264bsdCanvas.prototype.malloc = function(size) {
     return this.Module.ccall('malloc', Number, [Number], [size]);
 };
 
 // void free(void* ptr);
-YUVCanvas.prototype.free = function(ptr) {
+H264bsdCanvas.prototype.free = function(ptr) {
     this.Module.ccall('free', null, [Number], [ptr]);
 };
