@@ -22,30 +22,26 @@
 // TODO: Incorporate cropping information
 
 /**
- * This class grabs content from a video element and feeds it to a canvas element.
- * If available the content is modified using a custom WebGL shader program.
- * This class depends on the h264bsd_asm.js Module implementation.
+ * This class can be used to render output pictures from an H264bsdDecoder to a canvas element.
+ * If available the content is rendered using WebGL.
  */
-function H264bsdCanvas(canvas, Module, forceRGB) {
-    this.Module = Module;
+function H264bsdCanvas(canvas, forceRGB) {
     this.canvasElement = canvas;
-    this.initGlContext();
+    this.initContextGL();
     
-    if(this.contextGl && !forceRGB) {
+    if(this.contextGL && !forceRGB) {
         this.initProgram();
         this.initBuffers();
         this.initTextures();
     } else {
         this.context2D = canvas.getContext('2d');
-        this.rgbBufferSize = 0;
-        this.rgbBufferPtr = 0;
     }
 }
 
 /**
  * Create the GL context from the canvas element
  */
-H264bsdCanvas.prototype.initGlContext = function() {
+H264bsdCanvas.prototype.initContextGL = function() {
     var canvas = this.canvasElement;
     var gl = null;
 
@@ -68,14 +64,14 @@ H264bsdCanvas.prototype.initGlContext = function() {
         ++i;
     }
  
-    this.contextGl = gl;
+    this.contextGL = gl;
 }
 
 /**
  * Initialize GL shader program
  */
 H264bsdCanvas.prototype.initProgram = function() {
-    var gl = this.contextGl;
+    var gl = this.contextGL;
 
     var vertexShaderScript = [
         'attribute vec4 vertexPos;',
@@ -142,7 +138,7 @@ H264bsdCanvas.prototype.initProgram = function() {
  * Initialize vertex buffers and attach to shader program
  */
 H264bsdCanvas.prototype.initBuffers = function() {
-    var gl = this.contextGl;
+    var gl = this.contextGL;
     var program = this.shaderProgram;
 
     var vertexPosBuffer = gl.createBuffer();
@@ -166,7 +162,7 @@ H264bsdCanvas.prototype.initBuffers = function() {
  * Initialize GL textures and attach to shader program
  */
 H264bsdCanvas.prototype.initTextures = function() {
-    var gl = this.contextGl;
+    var gl = this.contextGL;
     var program = this.shaderProgram;
 
     var yTextureRef = this.initTexture();
@@ -189,6 +185,8 @@ H264bsdCanvas.prototype.initTextures = function() {
  * Create and configure a single texture
  */
 H264bsdCanvas.prototype.initTexture = function() {
+    var gl = this.contextGL;
+
     var textureRef = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, textureRef);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -203,107 +201,61 @@ H264bsdCanvas.prototype.initTexture = function() {
 /**
  * Draw yuvData in the best way possible
  */
-H264bsdCanvas.prototype.drawNextPicture = function(pStorage) {
-    var gl = this.contextGl;
+H264bsdCanvas.prototype.drawNextOutputPicture = function(decoder) {
+    var gl = this.contextGL;
 
     if(gl) {
-        this.drawNextPictureGl(pStorage);
+        this.drawNextOuptutPictureGL(decoder);
     } else {
-        this.drawNextPictureARGB(pStorage);
+        this.drawNextOuptutPictureARGB(decoder);
     }
 }
 
 /**
- * Setup GL viewport and draw the yuvData
+ * Draw the next output picture using WebGL
  */
-H264bsdCanvas.prototype.drawNextPictureGl = function(pStorage) {
-    var gl = this.contextGl;
+H264bsdCanvas.prototype.drawNextOuptutPictureGL = function(decoder) {
+    var gl = this.contextGL;
     var yTextureRef = this.yTextureRef;
     var uTextureRef = this.uTextureRef;
     var vTextureRef = this.vTextureRef;
 
-    gl.viewport(0, 0, size.w, size.h);
+    var sizeMB = decoder.outputSizeMB;
+    var width = sizeMB.width * 16;
+    var height = sizeMB.height * 16;
+
+    gl.viewport(0, 0, width, height);
+
+    var i420Data = decoder.nextOutputPicture();
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, yTextureRef);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, size.w, size.h, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, pYuvData);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, width, height, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, i420Data);
 
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, uTextureRef);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, size.w/2, size.h/2, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, pYuvData);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, width/2, height/2, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, i420Data);
 
     gl.activeTexture(gl.TEXTURE2);
     gl.bindTexture(gl.TEXTURE_2D, vTextureRef);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, size.w/2, size.h/2, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, pYuvData);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, width/2, height/2, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, i420Data);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); 
 }
 
 /**
- * Convert yuvData to ARGB data and draw to canvas
+ * Draw next output picture using ARGB data on a 2d canvas.
  */
-H264bsdCanvas.prototype.drawNextPictureARGB = function(pStorage) {
+H264bsdCanvas.prototype.drawNextOuptutPictureARGB = function(decoder) {
     var ctx = this.context2D;
-    var rgbBufferSize = this.rgbBufferSize;
-    var rgbBufferPtr = this.rgbBufferPtr;
-    var imageData = this.imageData;
 
-    var rgbSize = size.w * size.h * 4;
+    var sizeMB = decoder.outputSizeMB;
+    var width = sizeMB.width * 16;
+    var height = sizeMB.height * 16;
 
-    if(rgbBufferSize < rgbSize) {
-        if(rgbBufferPtr != 0) this.free(rgbBufferPtr);
+    var argbData = decoder.nextOutputPictureARGB();
 
-        rgbBufferSize = rgbSize;
-        rgbBufferPtr = this.malloc(rgbBufferSize);
-
-        this.rgbBufferSize = rgbBufferSize;
-        this.rgbBufferPtr = rgbBufferPtr;
-    }
-
-    this.h264bsdConvertToARGB(size.w, size.h, pYuvData, pRgbData);
-
-    if(!imageData || 
-        imageData.width != size.w || 
-        imageData.height != size.h) {
-        imageData = ctx.createImageData(size.w, size.h);
-        this.imageData = imageData;
-    }
-
-    var rgbData = this.Module.HEAPU8.subarray(rgbBufferPtr, rgbBufferPtr + rgbSize);
-    imageData.data.set(rgbData);
+    var imageData = ctx.createImageData(width, height);
+    imageData.data.set(argbData);
     ctx.putImageData(imageData, 0, 0);
 }
-
-//void h264bsdConvertToARGB(u32 width, u32 height, u8* data, u32 *rgbData);
-H264bsdCanvas.prototype.h264bsdConvertToARGB = function(width, height, pData, pRgbData) {
-    this.Module.ccall('h264bsdConvertToARGB', 
-        Number, 
-        [Number, Number, Number, Number], 
-        [width, height, pData, pRgbData]);
-};
-
-// u8* h264bsdNextOutputPicture(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs);
-H264bsdCanvas.prototype.h264bsdNextOutputPicture_ = function(pStorage, pPicId, pIsIdrPic, pNumErrMbs) {
-    return this.Module.ccall('h264bsdNextOutputPicture', 
-        Number, 
-        [Number, Number, Number, Number], 
-        [pStorage, pPicId, pIsIdrPic, pNumErrMbs]);
-};
-
-// u32* h264bsdNextOutputPictureARGB(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs);
-H264bsdCanvas.prototype.h264bsdNextOutputPictureARGB_ = function(pStorage, pPicId, pIsIdrPic, pNumErrMbs){
-    return this.Module.ccall('h264bsdNextOutputPictureARGB', 
-        Number, 
-        [Number, Number, Number, Number], 
-        [pStorage, pPicId, pIsIdrPic, pNumErrMbs]);
-};
-
-// void* malloc(size_t size);
-H264bsdCanvas.prototype.malloc = function(size) {
-    return this.Module.ccall('malloc', Number, [Number], [size]);
-};
-
-// void free(void* ptr);
-H264bsdCanvas.prototype.free = function(ptr) {
-    this.Module.ccall('free', null, [Number], [ptr]);
-};
