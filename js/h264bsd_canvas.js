@@ -27,14 +27,13 @@
  */
 function H264bsdCanvas(canvas, forceRGB) {
     this.canvasElement = canvas;
-    this.initContextGL();
-    
-    if(this.contextGL && !forceRGB) {
+
+    if(!forceRGB) this.initContextGL();
+
+    if(this.contextGL) {
         this.initProgram();
         this.initBuffers();
         this.initTextures();
-    } else {
-        this.context2D = canvas.getContext('2d');
     }
 }
 
@@ -48,7 +47,7 @@ H264bsdCanvas.prototype.initContextGL = function() {
     var validContextNames = ["webgl", "experimental-webgl", "moz-webgl", "webkit-3d"];
     var nameIndex = 0;
 
-    while(!gl && nameIndex < validNames.length) {
+    while(!gl && nameIndex < validContextNames.length) {
         var contextName = validContextNames[nameIndex];
         
         try {
@@ -100,9 +99,9 @@ H264bsdCanvas.prototype.initProgram = function() {
         ');',
       
         'void main(void) {',
-            'highp float y = texture2D(ySampler,  textureCoord).r;'
-            'highp float u = texture2D(uSampler,  textureCoord).r;'
-            'highp float v = texture2D(vSampler,  textureCoord).r;'
+            'highp float y = texture2D(ySampler,  textureCoord).r;',
+            'highp float u = texture2D(uSampler,  textureCoord).r;',
+            'highp float v = texture2D(vSampler,  textureCoord).r;',
             'gl_FragColor = vec4(y, u, v, 1) * YUV2RGB;',
         '}'
         ].join('\n');
@@ -207,7 +206,7 @@ H264bsdCanvas.prototype.drawNextOutputPicture = function(decoder) {
     if(gl) {
         this.drawNextOuptutPictureGL(decoder);
     } else {
-        this.drawNextOuptutPictureARGB(decoder);
+        this.drawNextOuptutPictureRGBA(decoder);
     }
 }
 
@@ -220,7 +219,7 @@ H264bsdCanvas.prototype.drawNextOuptutPictureGL = function(decoder) {
     var uTextureRef = this.uTextureRef;
     var vTextureRef = this.vTextureRef;
 
-    var sizeMB = decoder.outputSizeMB;
+    var sizeMB = decoder.outputSizeMB();
     var width = sizeMB.width * 16;
     var height = sizeMB.height * 16;
 
@@ -228,17 +227,23 @@ H264bsdCanvas.prototype.drawNextOuptutPictureGL = function(decoder) {
 
     var i420Data = decoder.nextOutputPicture();
 
+    var yDataLength = width * height;
+    var yData = i420Data.subarray(0, yDataLength);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, yTextureRef);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, width, height, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, i420Data);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, width, height, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, yData);
 
+    var cbDataLength = width/2 * height/2;
+    var cbData = i420Data.subarray(yDataLength, yDataLength + cbDataLength);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, uTextureRef);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, width/2, height/2, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, i420Data);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, width/2, height/2, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, cbData);
 
+    var crDataLength = cbDataLength;
+    var crData = i420Data.subarray(yDataLength + cbDataLength, yDataLength + cbDataLength + crDataLength);
     gl.activeTexture(gl.TEXTURE2);
     gl.bindTexture(gl.TEXTURE_2D, vTextureRef);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, width/2, height/2, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, i420Data);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, width/2, height/2, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, crData);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); 
 }
@@ -246,16 +251,17 @@ H264bsdCanvas.prototype.drawNextOuptutPictureGL = function(decoder) {
 /**
  * Draw next output picture using ARGB data on a 2d canvas.
  */
-H264bsdCanvas.prototype.drawNextOuptutPictureARGB = function(decoder) {
-    var ctx = this.context2D;
+H264bsdCanvas.prototype.drawNextOuptutPictureRGBA = function(decoder) {
+    var canvas = this.canvasElement;
 
-    var sizeMB = decoder.outputSizeMB;
+    var sizeMB = decoder.outputSizeMB();
     var width = sizeMB.width * 16;
     var height = sizeMB.height * 16;
 
-    var argbData = decoder.nextOutputPictureARGB();
+    var argbData = decoder.nextOutputPictureRGBA();
 
-    var imageData = ctx.createImageData(width, height);
+    var ctx = canvas.getContext('2d');
+    var imageData = ctx.getImageData(0, 0, width, height);
     imageData.data.set(argbData);
     ctx.putImageData(imageData, 0, 0);
 }

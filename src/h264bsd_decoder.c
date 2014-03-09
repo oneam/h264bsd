@@ -623,7 +623,7 @@ u8* h264bsdNextOutputPicture(storage_t *pStorage, u32 *picId, u32 *isIdrPic,
 
 /*------------------------------------------------------------------------------
 
-    Function: h264bsdNextOutputPictureARGB
+    Function: h264bsdNextOutputPictureRGBA
 
         Functional description:
             Get next output picture in display order, converted to ARGB.
@@ -642,7 +642,7 @@ u8* h264bsdNextOutputPicture(storage_t *pStorage, u32 *picId, u32 *isIdrPic,
             NULL if no pictures available for display
 
 ------------------------------------------------------------------------------*/
-u32* h264bsdNextOutputPictureARGB(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs)
+u32* h264bsdNextOutputPictureRGBA(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs)
 {
     u32 width = h264bsdPicWidth(pStorage) * 16;
     u32 height = h264bsdPicHeight(pStorage) * 16;
@@ -659,7 +659,7 @@ u32* h264bsdNextOutputPictureARGB(storage_t *pStorage, u32 *picId, u32 *isIdrPic
         pStorage->rgbConversionBuffer = (u32*)malloc(rgbSize);
     }
 
-    h264bsdConvertToARGB(width, height, data, pStorage->rgbConversionBuffer);
+    h264bsdConvertToRGBA(width, height, data, pStorage->rgbConversionBuffer);
     return pStorage->rgbConversionBuffer;
 }
 
@@ -1051,11 +1051,11 @@ void h264bsdFree(storage_t *pStorage)
 
 /*------------------------------------------------------------------------------
 
-    Function: h264bsdConvertToARGB
+    Function: h264bsdConvertToRGBA
 
         Functional description:
-            Convert decoded image data ARGB format.
-            ARGB format uses u32 pixels where the MSB is alpha.
+            Convert decoded image data RGBA format.
+            RGBA format uses u32 pixels where the MSB is alpha.
             *Note* While this function is available, it is not heavily optimized.
             If possible, you should use decoded image data directly. 
             This function should only be used when there is no other way to get ARGB data.
@@ -1073,7 +1073,7 @@ void h264bsdFree(storage_t *pStorage)
 
 ------------------------------------------------------------------------------*/
 
-void h264bsdConvertToARGB(u32 width, u32 height, u8* data, u32 *rgbData)
+void h264bsdConvertToRGBA(u32 width, u32 height, u8* data, u32 *rgbData)
 {
     const u32 w = width;
     const u32 h = height;
@@ -1100,9 +1100,9 @@ void h264bsdConvertToARGB(u32 width, u32 height, u8* data, u32 *rgbData)
         u32 b = (u32)CLIP1((298*c + 516*d         + 128) >> 8);
 
         u32 pixel = 0xff;
-        pixel = (pixel << 8) & r;
-        pixel = (pixel << 8) & g;
-        pixel = (pixel << 8) & b;
+        pixel = (pixel << 8) + b;
+        pixel = (pixel << 8) + g;
+        pixel = (pixel << 8) + r;
 
         *rgb = pixel;
 
@@ -1118,12 +1118,13 @@ void h264bsdConvertToARGB(u32 width, u32 height, u8* data, u32 *rgbData)
 
         if(x < w) continue;
 
+        x = 0;
         ++y;
 
         if(y & 1)
         {
-            cb -= w;
-            cr -= w;
+            cb -= w/2;
+            cr -= w/2;
         }
     }
 }

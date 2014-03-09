@@ -26,7 +26,8 @@
  *
  * In order to use this class, you first queue encoded data using queueData.
  * Each call to decode() will decode a single encoded element.
- * When decode() return H264bsdDecoder.PIC_RDY, a picture is ready in the output buffer.
+ * When decode() returns H264bsdDecoder.PIC_RDY, a picture is ready in the output buffer.
+ * You can also use the onPictureReady() function to determine when a picture is ready.
  * The output buffer can be accessed by calling getNextOutputPicture()
  * An output picture may also be decoded using an H264bsdCanvas.
  * When you're done decoding, make sure to call release() to clean up internal buffers.
@@ -49,6 +50,7 @@ H264bsdDecoder.HDRS_RDY = 2;
 H264bsdDecoder.ERROR = 3;
 H264bsdDecoder.PARAM_SET_ERROR = 4;
 H264bsdDecoder.MEMALLOC_ERROR = 5;
+H264bsdDecoder.NO_INPUT = 1024;
 
 /**
  * Clean up memory used by the decoder
@@ -76,7 +78,7 @@ H264bsdDecoder.prototype.release = function() {
 /**
  * Queue ArrayBuffer data to be decoded
  */
-H264bsdDecoder.prototype.queueData(data) {
+H264bsdDecoder.prototype.queueInput = function(data) {
     var module = this.module
     var pInput = this.pInput;
     var inputLength = this.inputLength;
@@ -109,15 +111,23 @@ H264bsdDecoder.prototype.queueData(data) {
         inputOffset = 0;
     }
     
-    this.pInput = input;
+    this.pInput = pInput;
     this.inputLength = inputLength;
     this.inputOffset = inputOffset;
 }
 
 /**
+ * Returns the numbre of bytes remaining in the decode queue.
+ */
+H264bsdDecoder.prototype.inputBytesRemaining = function() {
+    return this.inputLength - this.inputOffset;
+};
+
+/**
  * Decodes the next NAL unit from the queued data.
  * Returns H264bsdDecoder.PIC_RDY when a new picture is ready.
- * Pictures can be accessed using nextOutputPicture() or nextOutputPictureARGB()
+ * Pictures can be accessed using nextOutputPicture() or nextOutputPictureRGBA()
+ * decode() will return H264bsdDecoder.NO_INPUT when there is no more data to be decoded.
  */
 H264bsdDecoder.prototype.decode = function(picId) {
     var module = this.module;
@@ -126,7 +136,7 @@ H264bsdDecoder.prototype.decode = function(picId) {
     var inputLength = this.inputLength;
     var inputOffset = this.inputOffset;
 
-    if(pInput == 0) return H264bsdDecoder.ERROR;
+    if(pInput == 0) return H264bsdDecoder.NO_INPUT;
 
     var pBytesRead = module._malloc(4);
 
@@ -147,6 +157,10 @@ H264bsdDecoder.prototype.decode = function(picId) {
     this.pInput = pInput;
     this.inputLength = inputLength;
     this.inputOffset = inputOffset;
+
+    if(retCode == H264bsdDecoder.PIC_RDY && this.onPictureReady instanceof Function) {
+        this.onPictureReady();
+    }
 
     return retCode;
 };
@@ -169,20 +183,20 @@ H264bsdDecoder.prototype.nextOutputPicture = function() {
     module._free(pIsIdrPic);
     module._free(pNumErrMbs);
 
-    var outputSizeMB = this.getOutputSizeMB();
-    var outputLength = (outputSizeMB.width * outputSizeMB.height) * 3 / 2;
+    var outputSizeMB = this.outputSizeMB();
+    var outputLength = (outputSizeMB.width * 16 * outputSizeMB.height * 16) * 3 / 2;
 
-    var outputBytes = new UInt8Array(self.Module.HEAPU8, pBytes, outputLength);
+    var outputBytes = new Uint8Array(module.HEAPU8.subarray(pBytes, pBytes + outputLength));
 
-    return outputBytes
+    return outputBytes;
 };
 
 /**
- * Returns the next output picture as an ARGB encoded image.
- * Note: There is extra overhead required to convert the image to ARGB.
+ * Returns the next output picture as an RGBA encoded image.
+ * Note: There is extra overhead required to convert the image to RGBA.
  * This method should be avoided if possible.
  */
-H264bsdDecoder.prototype.nextOutputPictureARGB = function() {
+H264bsdDecoder.prototype.nextOutputPictureRGBA = function() {
     var module = this.module;
     var pStorage = this.pStorage; 
 
@@ -190,19 +204,19 @@ H264bsdDecoder.prototype.nextOutputPictureARGB = function() {
     var pIsIdrPic = module._malloc(4);
     var pNumErrMbs = module._malloc(4);
 
-    var pBytes = module._h264bsdNextOutputPictureARGB(pStorage, pPicId, pIsIdrPic, pNumErrMbs);
+    var pBytes = module._h264bsdNextOutputPictureRGBA(pStorage, pPicId, pIsIdrPic, pNumErrMbs);
 
     // None of these values are currently used.
     module._free(pPicId);
     module._free(pIsIdrPic);
     module._free(pNumErrMbs);
 
-    var outputSizeMB = this.getOutputSizeMB();
-    var outputLength = (outputSizeMB.width * outputSizeMB.height) * 4;
+    var outputSizeMB = this.outputSizeMB();
+    var outputLength = (outputSizeMB.width * 16 * outputSizeMB.height * 16) * 4;
 
-    var outputBytes = new UInt8Array(self.Module.HEAPU8, pBytes, outputLength);
+    var outputBytes = new Uint8Array(module.HEAPU8.subarray(pBytes, pBytes + outputLength));
 
-    return outputBytes
+    return outputBytes;
 };
 
 /**
