@@ -46,10 +46,10 @@ H264bsdCanvas.prototype.initContextGL = function() {
     var gl = null;
 
     var validContextNames = ["webgl", "experimental-webgl", "moz-webgl", "webkit-3d"];
-    var i = 0;
+    var nameIndex = 0;
 
     while(!gl && nameIndex < validNames.length) {
-        var contextName = validContextNames[i];
+        var contextName = validContextNames[nameIndex];
         
         try {
             gl = canvas.getContext(contextName);
@@ -61,7 +61,7 @@ H264bsdCanvas.prototype.initContextGL = function() {
             gl = null;
         }    
 
-        ++i;
+        ++nameIndex;
     }
  
     this.contextGL = gl;
