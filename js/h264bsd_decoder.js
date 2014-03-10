@@ -129,7 +129,7 @@ H264bsdDecoder.prototype.inputBytesRemaining = function() {
  * Pictures can be accessed using nextOutputPicture() or nextOutputPictureRGBA()
  * decode() will return H264bsdDecoder.NO_INPUT when there is no more data to be decoded.
  */
-H264bsdDecoder.prototype.decode = function(picId) {
+H264bsdDecoder.prototype.decode = function() {
     var module = this.module;
     var pStorage = this.pStorage;
     var pInput = this.pInput;

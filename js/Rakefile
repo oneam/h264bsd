@@ -25,9 +25,29 @@ file "h264bsd_asm.js" => o_files do
 	sh "emcc #{o_files.join(' ')} -s TOTAL_MEMORY=268435456 -s EXPORTED_FUNCTIONS='[\"#{export_functions.join('", "')}\"]' #{EMCC_FLAGS} -o h264bsd_asm.js"
 end
 
+source_files = [
+	"h264bsd_asm.js",
+	"h264bsd_decoder.js",
+	"h264bsd_canvas.js",
+]
+
+file "h264bsd.min.js" => source_files do
+	sh "uglifyjs #{source_files.join(' ')} -c -o h264bsd.min.js"
+end
+
+task :compress => ["h264bsd.min.js"]
+
 task :clean do
 	o_files.each{|o| FileUtils.rm_f(o)}
 	FileUtils.rm_f("h264bsd_asm.js")
+	FileUtils.rm_f("h264bsd.min.js")
 end
 
-task :default => ["h264bsd_asm.js"]
+desc "Check for prereq tools"
+task :setup do
+	sh("emcc --version") { |ok, res| fail("Can't find emscripten binaries.") unless ok }
+	sh("uglifyjs --version") { |ok, res| fail("Can't find UglifyJS2 tool for minification.") unless ok }
+	puts("Ready to go")
+end
+
+task :default => [:setup, "h264bsd.min.js"]
