@@ -2,23 +2,7 @@ SOURCES = $(wildcard ../src/*.c) main.c
 
 FLASCC:=X
 FLEX:=X
-AS3COMPILER:=asc2.jar
 BASE_CFLAGS:=-DFLASCC -O4 -I $(FLASCC)/usr/include
-
-$?UNAME=$(shell uname -s)
-ifneq (,$(findstring CYGWIN,$(UNAME)))
-	$?nativepath=$(shell cygpath -at mixed $(1))
-	$?unixpath=$(shell cygpath -at unix $(1))
-else
-	$?nativepath=$(abspath $(1))
-	$?unixpath=$(abspath $(1))
-endif
-
-ifneq (,$(findstring "asc2.jar","$(AS3COMPILER)"))
-	$?AS3COMPILERARGS=$(JAVA_HOME)/bin/java $(JVMARGS) -jar $(call nativepath,$(FLASCC)/usr/lib/$(AS3COMPILER)) -merge -md 
-else
-	echo "ASC is no longer supported" ; exit 1 ;
-endif
 
 check:
 	@if [ -d $(FLASCC)/usr/bin ] ; then true ; \
