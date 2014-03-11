@@ -39,6 +39,10 @@
 #include "h264bsd_reconstruct.h"
 #include "h264bsd_dpb.h"
 
+#ifdef FLASCC
+#include "AS3/AS3.h"
+#endif /* FLASCC */
+
 /*------------------------------------------------------------------------------
     2. External compiler flags
 --------------------------------------------------------------------------------
@@ -179,11 +183,12 @@ u32 h264bsdConceal(storage_t *pStorage, image_t *currImage, u32 sliceType)
         }
         else
         {
-#ifndef CROSSBRIDGE
+#ifndef FLASCC
             memcpy(currImage->data, refData, width*height*384);
 #else
             inline_as3(
-                "var temp:ByteArray = new ByteArray();\n"
+                "import flash.utils.ByteArray;\n"
+                "var temp:flash.utils.ByteArray = new flash.utils.ByteArray();\n"
                 "CModule.readBytes(%0, %2, temp);\n"
                 "temp.position = 0;\n"
                 "CModule.writeBytes(%1, %2, temp);" 

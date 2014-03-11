@@ -43,6 +43,10 @@
 #include "armVC.h"
 #endif /* H264DEC_OMXDL */
 
+#ifdef FLASCC
+#include "AS3/AS3.h"
+#endif /* FLASCC */
+
 /*------------------------------------------------------------------------------
     2. External compiler flags
 --------------------------------------------------------------------------------
@@ -2141,10 +2145,11 @@ static void FillRow1(
     ASSERT(ref);
     ASSERT(fill);
 
-#ifndef CROSSBRIDGE
+#ifndef FLASCC
     memcpy(fill, ref, center);
 #else
     inline_as3(
+        "import flash.utils.ByteArray;\n"
         "var temp:ByteArray = new ByteArray();\n"
         "CModule.readBytes(%0, %2, temp);\n"
         "temp.position = 0;\n"
