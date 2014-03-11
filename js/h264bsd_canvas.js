@@ -219,9 +219,8 @@ H264bsdCanvas.prototype.drawNextOuptutPictureGL = function(decoder) {
     var uTextureRef = this.uTextureRef;
     var vTextureRef = this.vTextureRef;
 
-    var sizeMB = decoder.outputSizeMB();
-    var width = sizeMB.width * 16;
-    var height = sizeMB.height * 16;
+    var width = decoder.outputPictureWidth();
+    var height = decoder.outputPictureHeight();
 
     gl.viewport(0, 0, width, height);
 
@@ -254,9 +253,8 @@ H264bsdCanvas.prototype.drawNextOuptutPictureGL = function(decoder) {
 H264bsdCanvas.prototype.drawNextOuptutPictureRGBA = function(decoder) {
     var canvas = this.canvasElement;
 
-    var sizeMB = decoder.outputSizeMB();
-    var width = sizeMB.width * 16;
-    var height = sizeMB.height * 16;
+    var width = decoder.outputPictureWidth();
+    var height = decoder.outputPictureHeight();
 
     var argbData = decoder.nextOutputPictureRGBA();
 

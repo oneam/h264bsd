@@ -27,11 +27,13 @@
         // Render for each picture
         d.onPictureReady = function () {
             console.log('Drawing next output picture...');
-            var outputSizeMB = d.outputSizeMB();
-            canvas.width = outputSizeMB.width * 16;
-            canvas.height = outputSizeMB.height * 16;
-
             c.drawNextOutputPicture(d);
+        }
+
+        // Render for each picture
+        d.onHeadersReady = function () {
+            canvas.width = d.outputPictureWidth();
+            canvas.height = d.outputPictureHeight();
         }
 
         // Loop with setTimeout delay to allow UI to update.

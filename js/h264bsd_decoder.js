@@ -40,6 +40,9 @@ function H264bsdDecoder(module) {
     this.inputLength = 0;
     this.inputOffset = 0;
 
+    this.onPictureReady = null;
+    this.onHeadersReady = null;
+
     this.pStorage = module._h264bsdAlloc();
     module._h264bsdInit(this.pStorage, 0);
 };
@@ -162,6 +165,10 @@ H264bsdDecoder.prototype.decode = function() {
         this.onPictureReady();
     }
 
+    if(retCode == H264bsdDecoder.HDRS_RDY && this.onHeadersReady instanceof Function) {
+        this.onHeadersReady();
+    }
+
     return retCode;
 };
 
@@ -183,9 +190,7 @@ H264bsdDecoder.prototype.nextOutputPicture = function() {
     module._free(pIsIdrPic);
     module._free(pNumErrMbs);
 
-    var outputSizeMB = this.outputSizeMB();
-    var outputLength = (outputSizeMB.width * 16 * outputSizeMB.height * 16) * 3 / 2;
-
+    var outputLength = this.outputPictureSizeBytes();
     var outputBytes = new Uint8Array(module.HEAPU8.subarray(pBytes, pBytes + outputLength));
 
     return outputBytes;
@@ -211,26 +216,56 @@ H264bsdDecoder.prototype.nextOutputPictureRGBA = function() {
     module._free(pIsIdrPic);
     module._free(pNumErrMbs);
 
-    var outputSizeMB = this.outputSizeMB();
-    var outputLength = (outputSizeMB.width * 16 * outputSizeMB.height * 16) * 4;
-
+    var outputLength = this.outputPictureSizeBytesRGBA();
     var outputBytes = new Uint8Array(module.HEAPU8.subarray(pBytes, pBytes + outputLength));
 
     return outputBytes;
 };
 
 /**
- * Returns an object containing the width and height of output pictures in MB.
+ * Returns an object containing the width and height of output pictures in pixels.
  * This value is only valid after at least one call to decode() has returned H264bsdDecoder.HDRS_RDY
+ * You can also use onHeadersReady callback to determine when this value changes.
  */
-H264bsdDecoder.prototype.outputSizeMB = function() {
+H264bsdDecoder.prototype.outputPictureWidth = function() {
     var module = this.module;
     var pStorage = this.pStorage;
 
-    var width = module._h264bsdPicWidth(pStorage);
-    var height = module._h264bsdPicHeight(pStorage);
+    return module._h264bsdPicWidth(pStorage) * 16;
+};
 
-    return {'width': width, 'height': height};
+/**
+ * Returns an object containing the width and height of output pictures in pixels.
+ * This value is only valid after at least one call to decode() has returned H264bsdDecoder.HDRS_RDY
+ * You can also use onHeadersReady callback to determine when this value changes.
+ */
+H264bsdDecoder.prototype.outputPictureHeight = function() {
+    var module = this.module;
+    var pStorage = this.pStorage;
+
+    return module._h264bsdPicHeight(pStorage) * 16;
+};
+
+/**
+ * Returns integer byte length of output pictures in bytes.
+ * This value is only valid after at least one call to decode() has returned H264bsdDecoder.HDRS_RDY
+ */
+H264bsdDecoder.prototype.outputPictureSizeBytes = function() {
+    var width = this.outputPictureWidth();
+    var height = this.outputPictureHeight();
+
+    return (width * height) * 3 / 2;
+};
+
+/**
+ * Returns integer byte length of RGBA output pictures in bytes.
+ * This value is only valid after at least one call to decode() has returned H264bsdDecoder.HDRS_RDY
+ */
+H264bsdDecoder.prototype.outputPictureSizeBytesRGBA = function() {
+    var width = this.outputPictureWidth();
+    var height = this.outputPictureHeight();
+
+    return (width * height) * 4;
 };
 
 /**
