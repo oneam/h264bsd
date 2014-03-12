@@ -9,6 +9,7 @@ The intention is to provide a simple H.264 decoder that can be easily invoked fr
 ## Directories
 
 * *src* The modified source.
+* *test* Contains test data available for all platforms.
 * *win* Visual Studio project files for building.
 * *js* JavaScript version of the library created using [emscripten](http://emscripten.org/).
 * *flex* ActionScript version of the library built using [CrossBridge](http://adobe-flash.github.io/crossbridge/).
