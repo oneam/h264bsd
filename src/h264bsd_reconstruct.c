@@ -43,10 +43,6 @@
 #include "armVC.h"
 #endif /* H264DEC_OMXDL */
 
-#ifdef FLASCC
-#include "AS3/AS3.h"
-#endif /* FLASCC */
-
 /*------------------------------------------------------------------------------
     2. External compiler flags
 --------------------------------------------------------------------------------
@@ -2141,20 +2137,34 @@ static void FillRow1(
   i32 center,
   i32 right)
 {
+#ifndef FLASCC
+    ASSERT(ref);
+    ASSERT(fill);
+
+    memcpy(fill, ref, center);
+#else
+    int i = 0;    
+    u8 *pdest = (u8*) fill;
+    u8 *psrc = (u8*) ref;
+    int loops = (center / sizeof(u32));
 
     ASSERT(ref);
     ASSERT(fill);
 
-#ifndef FLASCC
-    memcpy(fill, ref, center);
-#else
-    inline_as3(
-        "import flash.utils.ByteArray;\n"
-        "var temp:ByteArray = new ByteArray();\n"
-        "CModule.readBytes(%0, %2, temp);\n"
-        "temp.position = 0;\n"
-        "CModule.writeBytes(%1, %2, temp);" 
-        : : "r" (fill), "r" (ref), "r" (center));
+    for(i = 0; i < loops; ++i)
+    {
+        *((u32*)pdest) = *((u32*)psrc);
+        pdest += sizeof(u32);
+        psrc += sizeof(u32);
+    }
+
+    loops = (center % sizeof(u32));
+    for (i = 0; i < loops; ++i)
+    {
+        *pdest = *psrc;
+        ++pdest;
+        ++psrc;
+    }
 #endif
 
     /*lint -e(715) */

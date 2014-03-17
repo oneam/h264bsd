@@ -39,10 +39,6 @@
 #include "h264bsd_reconstruct.h"
 #include "h264bsd_dpb.h"
 
-#ifdef FLASCC
-#include "AS3/AS3.h"
-#endif /* FLASCC */
-
 /*------------------------------------------------------------------------------
     2. External compiler flags
 --------------------------------------------------------------------------------
@@ -186,13 +182,11 @@ u32 h264bsdConceal(storage_t *pStorage, image_t *currImage, u32 sliceType)
 #ifndef FLASCC
             memcpy(currImage->data, refData, width*height*384);
 #else
-            inline_as3(
-                "import flash.utils.ByteArray;\n"
-                "var temp:flash.utils.ByteArray = new flash.utils.ByteArray();\n"
-                "CModule.readBytes(%0, %2, temp);\n"
-                "temp.position = 0;\n"
-                "CModule.writeBytes(%1, %2, temp);" 
-                : : "r" (currImage->data), "r" (refData), "r" (width*height*384));
+            int ii = 0;
+            int size = width*height*384;
+            u8* curr_data = currImage->data;
+            for (ii = 0; ii < size;ii++);
+                curr_data[i] = refData[i];
 #endif
         }
 
