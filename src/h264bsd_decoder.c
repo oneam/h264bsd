@@ -626,7 +626,8 @@ u8* h264bsdNextOutputPicture(storage_t *pStorage, u32 *picId, u32 *isIdrPic,
     Function: h264bsdNextOutputPictureRGBA
 
         Functional description:
-            Get next output picture in display order, converted to ARGB.
+            Get next output picture in display order, converted to RGBA.
+            RGBA is the color format most commonly used by OpenGL.
 
         Inputs:
             pStorage    pointer to storage data structure
@@ -647,10 +648,9 @@ u32* h264bsdNextOutputPictureRGBA(storage_t *pStorage, u32 *picId, u32 *isIdrPic
     u32 width = h264bsdPicWidth(pStorage) * 16;
     u32 height = h264bsdPicHeight(pStorage) * 16;
     u8* data = h264bsdNextOutputPicture(pStorage, picId, isIdrPic, numErrMbs);
+    size_t rgbSize = sizeof(u32) * width * height;
 
     if(data == NULL) return NULL;
-
-    size_t rgbSize = sizeof(u32) * width * height;
 
     if(pStorage->rgbConversionBufferSize < rgbSize)
     {
@@ -660,6 +660,48 @@ u32* h264bsdNextOutputPictureRGBA(storage_t *pStorage, u32 *picId, u32 *isIdrPic
     }
 
     h264bsdConvertToRGBA(width, height, data, pStorage->rgbConversionBuffer);
+    return pStorage->rgbConversionBuffer;
+}
+
+/*------------------------------------------------------------------------------
+
+    Function: h264bsdNextOutputPictureRGBA
+
+        Functional description:
+            Get next output picture in display order, converted to BGRA.
+            BGRA is the color format most commonly used by Windows.
+
+        Inputs:
+            pStorage    pointer to storage data structure
+
+        Outputs:
+            picId       identifier of the picture will be stored here
+            isIdrPic    IDR flag of the picture will be stored here
+            numErrMbs   number of concealed macroblocks in the picture
+                        will be stored here
+
+        Returns:
+            pointer to the picture data
+            NULL if no pictures available for display
+
+------------------------------------------------------------------------------*/
+u32* h264bsdNextOutputPictureBGRA(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs)
+{
+    u32 width = h264bsdPicWidth(pStorage) * 16;
+    u32 height = h264bsdPicHeight(pStorage) * 16;
+    u8* data = h264bsdNextOutputPicture(pStorage, picId, isIdrPic, numErrMbs);
+    size_t rgbSize = sizeof(u32) * width * height;
+
+    if(data == NULL) return NULL;
+
+    if(pStorage->rgbConversionBufferSize < rgbSize)
+    {
+        if(pStorage->rgbConversionBuffer != NULL) free(pStorage->rgbConversionBuffer);
+        pStorage->rgbConversionBufferSize = rgbSize;
+        pStorage->rgbConversionBuffer = (u32*)malloc(rgbSize);
+    }
+
+    h264bsdConvertToBGRA(width, height, data, pStorage->rgbConversionBuffer);
     return pStorage->rgbConversionBuffer;
 }
 
@@ -1055,10 +1097,11 @@ void h264bsdFree(storage_t *pStorage)
 
         Functional description:
             Convert decoded image data RGBA format.
+            RGBA is the color format most commonly used by OpenGL.
             RGBA format uses u32 pixels where the MSB is alpha.
             *Note* While this function is available, it is not heavily optimized.
             If possible, you should use decoded image data directly. 
-            This function should only be used when there is no other way to get ARGB data.
+            This function should only be used when there is no other way to get RGBA data.
 
         Inputs:
             width       width of the image in pixels
@@ -1066,17 +1109,17 @@ void h264bsdFree(storage_t *pStorage)
             data        pointer to decoded image data
 
         Outputs:
-            rgbData     pointer to the buffer where the RGB data will be written
+            rgbaData     pointer to the buffer where the RGBA data will be written
 
         Returns:
             none
 
 ------------------------------------------------------------------------------*/
 
-void h264bsdConvertToRGBA(u32 width, u32 height, u8* data, u32 *rgbData)
+void h264bsdConvertToRGBA(u32 width, u32 height, u8* data, u32 *rgbaData)
 {
-    const u32 w = width;
-    const u32 h = height;
+    const int w = (int)width;
+    const int h = (int)height;
 
     int x = 0;
     int y = 0;
@@ -1087,7 +1130,7 @@ void h264bsdConvertToRGBA(u32 width, u32 height, u8* data, u32 *rgbData)
     u8* luma = data;
     u8* cb = data + ySize;
     u8* cr = data + ySize + uSize;
-    u32* rgb = rgbData;
+    u32* rgba = rgbaData;
 
     while(y < h)
     {
@@ -1104,10 +1147,91 @@ void h264bsdConvertToRGBA(u32 width, u32 height, u8* data, u32 *rgbData)
         pixel = (pixel << 8) + g;
         pixel = (pixel << 8) + r;
 
-        *rgb = pixel;
+        *rgba = pixel;
 
         ++x;
-        ++rgb;
+        ++rgba;
+        ++luma;
+
+        if(!(x & 1))
+        {
+            ++cb;
+            ++cr;
+        }
+
+        if(x < w) continue;
+
+        x = 0;
+        ++y;
+
+        if(y & 1)
+        {
+            cb -= w/2;
+            cr -= w/2;
+        }
+    }
+}
+
+/*------------------------------------------------------------------------------
+
+    Function: h264bsdConvertToBGRA
+
+        Functional description:
+            Convert decoded image data BGRA format.
+            BGRA is the color format most commonly used by Windows.
+            BGRA format uses u32 pixels where the MSB is alpha.
+            *Note* While this function is available, it is not heavily optimized.
+            If possible, you should use decoded image data directly. 
+            This function should only be used when there is no other way to get BGRA data.
+
+        Inputs:
+            width       width of the image in pixels
+            height      height of the image in pixels
+            data        pointer to decoded image data
+
+        Outputs:
+            bgraData     pointer to the buffer where the BGRA data will be written
+
+        Returns:
+            none
+
+------------------------------------------------------------------------------*/
+
+void h264bsdConvertToBGRA(u32 width, u32 height, u8* data, u32 *bgraData)
+{
+    const int w = (int)width;
+    const int h = (int)height;
+
+    int x = 0;
+    int y = 0;
+
+    size_t ySize = w * h;
+    size_t uSize = w/2 * h/2;
+
+    u8* luma = data;
+    u8* cb = data + ySize;
+    u8* cr = data + ySize + uSize;
+    u32* bgra = bgraData;
+
+    while(y < h)
+    {
+        int c = *luma - 16;
+        int d = *cb - 128;
+        int e = *cr - 128;
+
+        u32 r = (u32)CLIP1((298*c         + 409*e + 128) >> 8);
+        u32 g = (u32)CLIP1((298*c - 100*d - 208*e + 128) >> 8);
+        u32 b = (u32)CLIP1((298*c + 516*d         + 128) >> 8);
+
+        u32 pixel = 0xff;
+        pixel = (pixel << 8) + r;
+        pixel = (pixel << 8) + g;
+        pixel = (pixel << 8) + b;
+
+        *bgra = pixel;
+
+        ++x;
+        ++bgra;
         ++luma;
 
         if(!(x & 1))
