@@ -185,7 +185,7 @@ u32 h264bsdConceal(storage_t *pStorage, image_t *currImage, u32 sliceType)
             int ii = 0;
             int size = width*height*384;
             u8* curr_data = currImage->data;
-            for (ii = 0; ii < size;ii++);
+            for (ii = 0; ii < size;ii++)
                 curr_data[i] = refData[i];
 #endif
         }
