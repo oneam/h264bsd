@@ -3,8 +3,10 @@ package h264bsd
     import flash.display.Bitmap;
     import flash.display.BitmapData;
     import flash.events.EventDispatcher;
+    import flash.filters.ColorMatrixFilter;
     import flash.geom.ColorTransform;
     import flash.geom.Matrix;
+    import flash.geom.Point;
     import flash.geom.Rectangle;
     import flash.utils.ByteArray;
     import flash.utils.Endian;
@@ -152,11 +154,63 @@ package h264bsd
         
         public function drawNextOutputPicture(target:Bitmap, transform:Matrix = null):void
         {
-            var rgbBytes:ByteArray = getNextOutputPictureBytesBGRA();
-            
+            var i420Bytes:ByteArray = getNextOutputPictureBytes();
             var cinfo:CroppingInfo = getCroppingInfo();
-            var outputPicture:BitmapData = new BitmapData(cinfo.uncroppedWidth, cinfo.uncroppedHeight);
-            outputPicture.setPixels(new Rectangle(0,0, cinfo.uncroppedWidth, cinfo.uncroppedHeight), rgbBytes);
+            
+            var width:int = cinfo.uncroppedWidth;
+            var height:int = cinfo.uncroppedHeight;
+            
+            var yPtr:int = 0;
+            var cbPtr:int = width * height;
+            var crPtr:int = cbPtr + width / 2 * height / 2;
+            
+            var yuvVector:Vector.<uint> = new Vector.<uint>(width * height);
+            var yuvPtr:int = 0;
+            
+            var y:int = 0;
+            var x:int = 0;
+            
+            while(y < height)
+            {
+                var yuv:uint = 0xff;
+                yuv = (yuv << 8) + i420Bytes[yPtr];
+                yuv = (yuv << 8) + i420Bytes[cbPtr];
+                yuv = (yuv << 8) + i420Bytes[crPtr];
+                
+                i420Bytes[yuvPtr] = yuv;
+                
+                ++x;
+                ++yPtr;
+                ++yuvPtr;
+                
+                if((x & 1) == 0)
+                {
+                    ++cbPtr;
+                    ++crPtr;
+                }
+                
+                if(x < width) continue;
+                
+                ++y;
+                x = 0;
+                
+                if((y & 1) > 0)
+                {
+                    cbPtr -= width / 2;
+                    crPtr -= width / 2;
+                }
+            }
+            
+            var outputPicture:BitmapData = new BitmapData(width, height);
+            outputPicture.setVector(new Rectangle(0,0, width, height), yuvVector);
+            
+            var yuvFilter:ColorMatrixFilter = new ColorMatrixFilter(
+                [1.1643828125, 0, 1.59602734375, -.87078515625, 0,
+                 1.1643828125, -.39176171875, -.81296875, .52959375, 0,
+                 1.1643828125, 2.017234375, 0, -1.081390625, 0,
+                 0, 0, 0, 1, 0]);
+            
+            outputPicture.applyFilter(outputPicture, outputPicture.rect, new Point(0,0), yuvFilter);
             
             target.bitmapData.lock();
             target.bitmapData.draw(outputPicture, transform, null, null, new Rectangle(0,0, cinfo.width, cinfo.height), true);
