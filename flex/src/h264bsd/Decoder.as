@@ -12,9 +12,6 @@ package h264bsd
     
     import h264bsd_asm.CModule;
     
-    import mx.logging.ILogger;
-    import mx.logging.Log;
-    
     [Event(name = "pictureReady", type = "pureweb.client.ui.H264DecoderEvent")]
     [Event(name = "headersReady", type = "pureweb.client.ui.H264DecoderEvent")]
     public class Decoder extends EventDispatcher
@@ -26,8 +23,6 @@ package h264bsd
         public static const PARAM_SET_ERROR:int = 4;
         public static const MEMALLOC_ERROR:int = 5;
         public static const NO_INPUT:int = 1024;
-        
-        private static var _logger:ILogger = null;
         
         private var _storagePtr:int = 0;
         private var _released:Boolean = false;
@@ -253,14 +248,6 @@ package h264bsd
             _inputPtr = 0;
             _inputOffset = 0;
             _inputLength = 0;
-        }
-        
-        private function get logger():ILogger
-        {
-            if(_logger == null)
-                _logger = Log.getLogger(getQualifiedClassName(this).replace("::", "."));
-            
-            return _logger;
         }
     }    
 }
