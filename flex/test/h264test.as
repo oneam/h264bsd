@@ -3,7 +3,7 @@ package
   import flash.display.Sprite;
   import flash.text.TextField;
   import flash.events.Event;
-  import h264bsd.CModule;
+  import h264bsd_asm.CModule;
   
   public class h264test extends Sprite
   {
