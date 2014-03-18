@@ -1167,11 +1167,11 @@ void h264bsdConvertToRGBA(u32 width, u32 height, u8* data, u32 *pOutput)
     int y = 0;
 
     size_t ySize = w * h;
-    size_t uSize = w/2 * h/2;
+    size_t cbSize = w/2 * h/2;
 
     u8* luma = data;
     u8* cb = data + ySize;
-    u8* cr = data + ySize + uSize;
+    u8* cr = data + ySize + cbSize;
     u32* rgba = pOutput;
 
     while(y < h)
@@ -1248,11 +1248,11 @@ void h264bsdConvertToBGRA(u32 width, u32 height, u8* data, u32 *pOutput)
     int y = 0;
 
     size_t ySize = w * h;
-    size_t uSize = w/2 * h/2;
+    size_t cbSize = w/2 * h/2;
 
     u8* luma = data;
     u8* cb = data + ySize;
-    u8* cr = data + ySize + uSize;
+    u8* cr = data + ySize + cbSize;
     u32* bgra = pOutput;
 
     while(y < h)
@@ -1328,23 +1328,15 @@ void h264bsdConvertToYCbCrA(u32 width, u32 height, u8* data, u32 *pOutput)
     int y = 0;
 
     size_t ySize = w * h;
-    size_t uSize = w/2 * h/2;
+    size_t cbSize = w/2 * h/2;
 
     u8* luma = data;
     u8* cb = data + ySize;
-    u8* cr = data + ySize + uSize;
+    u8* cr = data + ySize + cbSize;
     u32* yCbCr = pOutput;
 
     while(y < h)
     {
-        int c =  - 16;
-        int d =  - 128;
-        int e = *cr - 128;
-
-        u32 r = (u32)CLIP1((298*c         + 409*e + 128) >> 8);
-        u32 g = (u32)CLIP1((298*c - 100*d - 208*e + 128) >> 8);
-        u32 b = (u32)CLIP1((298*c + 516*d         + 128) >> 8);
-
         u32 pixel = 0xff;
         pixel = (pixel << 8) + *cr;
         pixel = (pixel << 8) + *cb;
