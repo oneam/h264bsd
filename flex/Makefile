@@ -14,8 +14,8 @@ check:
 	fi
 
 swc: check
-	"$(FLASCC)/usr/bin/clang" $(BASE_CFLAGS) $(SOURCES) -emit-swc=h264bsd -o h264bsd.swc
-	"$(FLEX)/bin/mxmlc" -static-link-runtime-shared-libraries -compiler.omit-trace-statements=false -library-path=h264bsd.swc -debug=true h264test.as -o h264test.swf
+	"$(FLASCC)/usr/bin/gcc" $(BASE_CFLAGS) $(SOURCES) -emit-swc=h264bsd_asm -o lib/h264bsd_asm.swc
+	"$(FLEX)/bin/mxmlc" -static-link-runtime-shared-libraries -compiler.omit-trace-statements=false -library-path=lib/h264bsd_asm.swc -debug=true test/h264test.as -o test/h264test.swf
 
 
 clean:

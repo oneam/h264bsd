@@ -8,3 +8,5 @@ win/*.sdf
 node_modules
 js/h264bsd_asm.js.map
 *.suo
+flex/.settings/
+flex/bin/
