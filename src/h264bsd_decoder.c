@@ -707,6 +707,48 @@ u32* h264bsdNextOutputPictureBGRA(storage_t *pStorage, u32 *picId, u32 *isIdrPic
 
 /*------------------------------------------------------------------------------
 
+    Function: h264bsdNextOutputPictureYCbCrA
+
+        Functional description:
+            Get next output picture in display order, converted to YCbCrA.
+            YCbCrA is a 4:4:4 format that uses u32 pixels where the MSB is alpha.
+
+        Inputs:
+            pStorage    pointer to storage data structure
+
+        Outputs:
+            picId       identifier of the picture will be stored here
+            isIdrPic    IDR flag of the picture will be stored here
+            numErrMbs   number of concealed macroblocks in the picture
+                        will be stored here
+
+        Returns:
+            pointer to the picture data
+            NULL if no pictures available for display
+
+------------------------------------------------------------------------------*/
+u32* h264bsdNextOutputPictureYCbCrA(storage_t *pStorage, u32 *picId, u32 *isIdrPic, u32 *numErrMbs)
+{
+    u32 width = h264bsdPicWidth(pStorage) * 16;
+    u32 height = h264bsdPicHeight(pStorage) * 16;
+    u8* data = h264bsdNextOutputPicture(pStorage, picId, isIdrPic, numErrMbs);
+    size_t rgbSize = sizeof(u32) * width * height;
+
+    if(data == NULL) return NULL;
+
+    if(pStorage->rgbConversionBufferSize < rgbSize)
+    {
+        if(pStorage->rgbConversionBuffer != NULL) free(pStorage->rgbConversionBuffer);
+        pStorage->rgbConversionBufferSize = rgbSize;
+        pStorage->rgbConversionBuffer = (u32*)malloc(rgbSize);
+    }
+
+    h264bsdConvertToYCbCrA(width, height, data, pStorage->rgbConversionBuffer);
+    return pStorage->rgbConversionBuffer;
+}
+
+/*------------------------------------------------------------------------------
+
     Function: h264bsdPicWidth
 
         Functional description:
@@ -1109,14 +1151,14 @@ void h264bsdFree(storage_t *pStorage)
             data        pointer to decoded image data
 
         Outputs:
-            rgbaData     pointer to the buffer where the RGBA data will be written
+            pOutput     pointer to the buffer where the RGBA data will be written
 
         Returns:
             none
 
 ------------------------------------------------------------------------------*/
 
-void h264bsdConvertToRGBA(u32 width, u32 height, u8* data, u32 *rgbaData)
+void h264bsdConvertToRGBA(u32 width, u32 height, u8* data, u32 *pOutput)
 {
     const int w = (int)width;
     const int h = (int)height;
@@ -1130,7 +1172,7 @@ void h264bsdConvertToRGBA(u32 width, u32 height, u8* data, u32 *rgbaData)
     u8* luma = data;
     u8* cb = data + ySize;
     u8* cr = data + ySize + uSize;
-    u32* rgba = rgbaData;
+    u32* rgba = pOutput;
 
     while(y < h)
     {
@@ -1190,14 +1232,14 @@ void h264bsdConvertToRGBA(u32 width, u32 height, u8* data, u32 *rgbaData)
             data        pointer to decoded image data
 
         Outputs:
-            bgraData     pointer to the buffer where the BGRA data will be written
+            pOutput     pointer to the buffer where the BGRA data will be written
 
         Returns:
             none
 
 ------------------------------------------------------------------------------*/
 
-void h264bsdConvertToBGRA(u32 width, u32 height, u8* data, u32 *bgraData)
+void h264bsdConvertToBGRA(u32 width, u32 height, u8* data, u32 *pOutput)
 {
     const int w = (int)width;
     const int h = (int)height;
@@ -1211,7 +1253,7 @@ void h264bsdConvertToBGRA(u32 width, u32 height, u8* data, u32 *bgraData)
     u8* luma = data;
     u8* cb = data + ySize;
     u8* cr = data + ySize + uSize;
-    u32* bgra = bgraData;
+    u32* bgra = pOutput;
 
     while(y < h)
     {
@@ -1232,6 +1274,86 @@ void h264bsdConvertToBGRA(u32 width, u32 height, u8* data, u32 *bgraData)
 
         ++x;
         ++bgra;
+        ++luma;
+
+        if(!(x & 1))
+        {
+            ++cb;
+            ++cr;
+        }
+
+        if(x < w) continue;
+
+        x = 0;
+        ++y;
+
+        if(y & 1)
+        {
+            cb -= w/2;
+            cr -= w/2;
+        }
+    }
+}
+
+/*------------------------------------------------------------------------------
+
+    Function: h264bsdConvertToYCbCrA
+
+        Functional description:
+            Convert decoded image data YCbCrA format.
+            YCbCrA is a 4:4:4 format that uses u32 pixels where the MSB is alpha.
+            *Note* While this function is available, it is not heavily optimized.
+            If possible, you should use decoded image data directly. 
+            This function should only be used when there is no other way to get YCbCrA data.
+
+        Inputs:
+            width       width of the image in pixels
+            height      height of the image in pixels
+            data        pointer to decoded image data
+
+        Outputs:
+            pOutput     pointer to the buffer where the YCbCrA data will be written
+
+        Returns:
+            none
+
+------------------------------------------------------------------------------*/
+
+void h264bsdConvertToYCbCrA(u32 width, u32 height, u8* data, u32 *pOutput)
+{
+    const int w = (int)width;
+    const int h = (int)height;
+
+    int x = 0;
+    int y = 0;
+
+    size_t ySize = w * h;
+    size_t uSize = w/2 * h/2;
+
+    u8* luma = data;
+    u8* cb = data + ySize;
+    u8* cr = data + ySize + uSize;
+    u32* yCbCr = pOutput;
+
+    while(y < h)
+    {
+        int c =  - 16;
+        int d =  - 128;
+        int e = *cr - 128;
+
+        u32 r = (u32)CLIP1((298*c         + 409*e + 128) >> 8);
+        u32 g = (u32)CLIP1((298*c - 100*d - 208*e + 128) >> 8);
+        u32 b = (u32)CLIP1((298*c + 516*d         + 128) >> 8);
+
+        u32 pixel = 0xff;
+        pixel = (pixel << 8) + *cr;
+        pixel = (pixel << 8) + *cb;
+        pixel = (pixel << 8) + *luma;
+
+        *yCbCr = pixel;
+
+        ++x;
+        ++yCbCr;
         ++luma;
 
         if(!(x & 1))

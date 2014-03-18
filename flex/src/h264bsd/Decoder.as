@@ -36,6 +36,7 @@ package h264bsd
         private var _h264bsdPicHeight:int = 0;
         private var _h264bsdNextOutputPicture:int = 0;
         private var _h264bsdNextOutputPictureBGRA:int = 0;
+        private var _h264bsdNextOutputPictureYCbCrA:int = 0;
         private var _h264bsdDecode:int = 0;
         private var _h264bsdShutdown:int = 0;
         private var _h264bsdFree:int = 0;
@@ -131,6 +132,27 @@ package h264bsd
             return bytes;
         }
         
+        public function getNextOutputPictureBytesYCbCrA():ByteArray {
+            var picIdPtr:int = CModule.malloc(4);
+            var isIdrPicPtr:int = CModule.malloc(4);
+            var numErrMbsPtr:int = CModule.malloc(4);
+            
+            var bytesPtr:int = 0;
+            var args:Vector.<int> = new <int>[_storagePtr, picIdPtr, isIdrPicPtr, numErrMbsPtr];
+            bytesPtr = CModule.callI(_h264bsdNextOutputPictureYCbCrA, args);
+            
+            var bytes:ByteArray = new ByteArray();
+            bytes.endian = Endian.LITTLE_ENDIAN;
+            CModule.readBytes(bytesPtr, outputByteLengthRGBA, bytes);
+            bytes.position = 0;
+            
+            if (picIdPtr != 0) CModule.free(picIdPtr);
+            if (isIdrPicPtr != 0) CModule.free(isIdrPicPtr);
+            if (numErrMbsPtr != 0) CModule.free(numErrMbsPtr);
+            
+            return bytes;
+        }
+        
         public function getNextOutputPictureBytes():ByteArray {
             var picIdPtr:int = CModule.malloc(4);
             var isIdrPicPtr:int = CModule.malloc(4);
@@ -154,55 +176,14 @@ package h264bsd
         
         public function drawNextOutputPicture(target:Bitmap, transform:Matrix = null):void
         {
-            var i420Bytes:ByteArray = getNextOutputPictureBytes();
+            var outputPictureBytes:ByteArray = getNextOutputPictureBytesYCbCrA();
             var cinfo:CroppingInfo = getCroppingInfo();
             
             var width:int = cinfo.uncroppedWidth;
             var height:int = cinfo.uncroppedHeight;
-            
-            var yPtr:int = 0;
-            var cbPtr:int = width * height;
-            var crPtr:int = cbPtr + width / 2 * height / 2;
-            
-            var yuvVector:Vector.<uint> = new Vector.<uint>(width * height);
-            var yuvPtr:int = 0;
-            
-            var y:int = 0;
-            var x:int = 0;
-            
-            while(y < height)
-            {
-                var yuv:uint = 0xff;
-                yuv = (yuv << 8) + i420Bytes[yPtr];
-                yuv = (yuv << 8) + i420Bytes[cbPtr];
-                yuv = (yuv << 8) + i420Bytes[crPtr];
-                
-                i420Bytes[yuvPtr] = yuv;
-                
-                ++x;
-                ++yPtr;
-                ++yuvPtr;
-                
-                if((x & 1) == 0)
-                {
-                    ++cbPtr;
-                    ++crPtr;
-                }
-                
-                if(x < width) continue;
-                
-                ++y;
-                x = 0;
-                
-                if((y & 1) > 0)
-                {
-                    cbPtr -= width / 2;
-                    crPtr -= width / 2;
-                }
-            }
-            
+                        
             var outputPicture:BitmapData = new BitmapData(width, height);
-            outputPicture.setVector(new Rectangle(0,0, width, height), yuvVector);
+            outputPicture.setPixels(new Rectangle(0,0, width, height), outputPictureBytes);
             
             var yuvFilter:ColorMatrixFilter = new ColorMatrixFilter(
                 [1.1643828125, 0, 1.59602734375, -.87078515625, 0,
@@ -264,6 +245,7 @@ package h264bsd
             _h264bsdPicHeight = CModule.getPublicSymbol("h264bsdPicHeight");
             _h264bsdNextOutputPicture = CModule.getPublicSymbol("h264bsdNextOutputPicture");
             _h264bsdNextOutputPictureBGRA = CModule.getPublicSymbol("h264bsdNextOutputPictureBGRA");
+            _h264bsdNextOutputPictureYCbCrA = CModule.getPublicSymbol("h264bsdNextOutputPictureYCbCrA");
             _h264bsdDecode = CModule.getPublicSymbol("h264bsdDecode");
             _h264bsdShutdown = CModule.getPublicSymbol("h264bsdShutdown");
             _h264bsdFree = CModule.getPublicSymbol("h264bsdFree");
@@ -278,7 +260,8 @@ package h264bsd
                 _h264bsdShutdown == 0 ||
                 _h264bsdFree == 0 ||
                 _h264bsdCroppingParams == 0 || 
-                _h264bsdNextOutputPictureBGRA == 0) {
+                _h264bsdNextOutputPictureBGRA == 0 ||
+                _h264bsdNextOutputPictureYCbCrA == 0) {
                 throw new Error("One or more missing entries in h264bsd function table.");
             }
         }
