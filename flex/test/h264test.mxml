@@ -59,7 +59,8 @@
                             loopBody();
                             break;
                         default:
-                            throw new Error("An error has occured in the decoder");
+                            trace("An error has occured in the decoder");
+                            loopBody();
                             break;
                     }
                 }
