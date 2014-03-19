@@ -185,13 +185,14 @@ package h264bsd
             var outputPicture:BitmapData = new BitmapData(width, height);
             outputPicture.setPixels(new Rectangle(0,0, width, height), outputPictureBytes);
             
-            var yuvFilter:ColorMatrixFilter = new ColorMatrixFilter(
-                [1.1643828125, 0, 1.59602734375, -.87078515625, 0,
-                 1.1643828125, -.39176171875, -.81296875, .52959375, 0,
-                 1.1643828125, 2.017234375, 0, -1.081390625, 0,
-                 0, 0, 0, 1, 0]);
+            var bt601Filter:ColorMatrixFilter = new ColorMatrixFilter([
+                1.1643828125, 0, 1.59602734375, -.87078515625, 0,
+                1.1643828125, -.39176171875, -.81296875, .52959375, 0,
+                1.1643828125, 2.017234375, 0, -1.081390625, 0,
+                0, 0, 0, 1, 0
+            ]);
             
-            outputPicture.applyFilter(outputPicture, outputPicture.rect, new Point(0,0), yuvFilter);
+            outputPicture.applyFilter(outputPicture, outputPicture.rect, new Point(0,0), bt601Filter);
             
             target.bitmapData.lock();
             target.bitmapData.draw(outputPicture, transform, null, null, new Rectangle(0,0, cinfo.width, cinfo.height), true);
