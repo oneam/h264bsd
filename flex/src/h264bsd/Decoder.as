@@ -186,9 +186,9 @@ package h264bsd
             outputPicture.setPixels(new Rectangle(0,0, width, height), outputPictureBytes);
             
             var bt601Filter:ColorMatrixFilter = new ColorMatrixFilter([
-                1.1643828125, 0, 1.59602734375, -.87078515625, 0,
-                1.1643828125, -.39176171875, -.81296875, .52959375, 0,
-                1.1643828125, 2.017234375, 0, -1.081390625, 0,
+                1.596, 0, 1.164, 0, -222.912,
+                -.813, -.392, 1.164, 0, 135.616,
+                0, 2.017, 1.164, 0, -276.8,
                 0, 0, 0, 1, 0
             ]);
             
