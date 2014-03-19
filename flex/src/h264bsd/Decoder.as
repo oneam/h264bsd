@@ -1,6 +1,5 @@
 package h264bsd
 {
-    import flash.display.Bitmap;
     import flash.display.BitmapData;
     import flash.events.EventDispatcher;
     import flash.filters.ColorMatrixFilter;
@@ -174,8 +173,10 @@ package h264bsd
             return bytes;
         }
         
-        public function drawNextOutputPicture(target:Bitmap, transform:Matrix = null):void
+        public function drawNextOutputPicture(target:BitmapData, transform:Matrix = null):void
         {
+            if(target == null) return;
+            
             var outputPictureBytes:ByteArray = getNextOutputPictureBytesYCbCrA();
             var cinfo:CroppingInfo = getCroppingInfo();
             
@@ -194,9 +195,9 @@ package h264bsd
             
             outputPicture.applyFilter(outputPicture, outputPicture.rect, new Point(0,0), bt601Filter);
             
-            target.bitmapData.lock();
-            target.bitmapData.draw(outputPicture, transform, null, null, new Rectangle(0,0, cinfo.width, cinfo.height), true);
-            target.bitmapData.unlock();
+            target.lock();
+            target.draw(outputPicture, transform, null, null, new Rectangle(0,0, cinfo.width, cinfo.height), true);
+            target.unlock();
         }
 
         private function get outputByteLength():int { 

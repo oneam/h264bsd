@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009" 
+               xmlns:s="library://ns.adobe.com/flex/spark" 
+               xmlns:mx="library://ns.adobe.com/flex/mx" minWidth="955" minHeight="600">
+    <fx:Script>
+        <![CDATA[
+            import h264bsd.CroppingInfo;
+            import h264bsd.Decoder;
+            
+            import mx.core.UIComponent;
+            
+            private function loadFile():void {
+                var fileRef:FileReference = new FileReference();
+                fileRef.addEventListener(Event.SELECT, onFileSelected);
+                fileRef.browse();
+                
+                function onFileSelected(e:Event):void {
+                    e.target.addEventListener(Event.COMPLETE, onFileComplete);
+                    e.target.load();
+                }
+                
+                function onFileComplete(e:Event):void {
+                    loopH264Data(e.target.data as ByteArray);
+                }
+            }
+            
+            private function loopH264Data(data:ByteArray):void {
+                if(data == null) return;
+                
+                var decoder:Decoder = new Decoder();
+                
+                var renderTarget:Bitmap = new Bitmap();
+                var renderComponent:UIComponent = new UIComponent();
+                renderComponent.addChild(renderTarget);
+                main.addElement(renderComponent);
+                
+                decoder.queueInput(data);
+                loopBody();
+                
+                function loopBody():void {
+                    var result:int = decoder.decode();
+                    
+                    switch(result)
+                    {
+                        case Decoder.NO_INPUT:
+                            decoder.queueInput(data);
+                            setTimeout(loopBody, 0);
+                            break;
+                        case Decoder.HDRS_RDY:
+                            var cinfo:CroppingInfo = decoder.getCroppingInfo();
+                            renderTarget.bitmapData = new BitmapData(cinfo.width, cinfo.height);
+                            setTimeout(loopBody, 0);
+                            break;
+                        case Decoder.PIC_RDY:
+                            decoder.drawNextOutputPicture(renderTarget.bitmapData);
+                            setTimeout(loopBody, 0);
+                            break;
+                        case Decoder.RDY:
+                            loopBody();
+                            break;
+                        default:
+                            throw new Error("An error has occured in the decoder");
+                            break;
+                    }
+                }
+            }
+        ]]>
+    </fx:Script>
+    
+    <s:VGroup id="main">
+        <s:Button label="Load File" click="loadFile()"/>
+    </s:VGroup>
+</s:Application>

@@ -25,12 +25,12 @@ bin/h264bsd.swc: lib/h264bsd_asm.swc $(AS_SOURCES)
 	mkdir -p bin
 	"$(FLEX)/bin/compc" -library-path=lib/h264bsd_asm.swc -source-path=src -include-sources=src -o bin/h264bsd.swc
 
-test/h264test.swf: test/h264test.as lib/h264bsd_asm.swc
+test/h264test.swf: test/h264test.mxml bin/h264bsd.swc
 	@if [ -d "$(FLEX)/bin" ] ; then true ; \
 	else echo "Couldn't locate Flex sdk directory, please invoke make with \"make FLEX=/path/to/flex  ...\"" ; exit 1 ; \
 	fi
 
-	"$(FLEX)/bin/mxmlc" -static-link-runtime-shared-libraries -compiler.omit-trace-statements=false -library-path=lib/h264bsd_asm.swc -debug=true test/h264test.as -o test/h264test.swf
+	"$(FLEX)/bin/mxmlc" -static-link-runtime-shared-libraries -compiler.omit-trace-statements=false -library-path=bin/h264bsd.swc -debug=true test/h264test.mxml -o test/h264test.swf
 
 clean:
 	rm -f test/*.swf lib/*.swc bin/*.swc *.bc *.exe
