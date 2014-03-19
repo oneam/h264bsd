@@ -7,13 +7,13 @@ BASE_CFLAGS = ENV["BASE_CFLAGS"] || "-DFLASCC -O4 -I #{FLASCC}/usr/include"
 
 def check_flascc()
     unless File.directory?("#{FLASCC}/usr/bin")
-        fail("Couldn't locate FLASCC sdk directory, please invoke make with \"FLASCC=/path/to/FLASCC/sdk rake ...\"")
+        fail("Couldn't locate FLASCC sdk directory, please invoke make with \"rake FLASCC=/path/to/FLASCC/sdk ...\"")
     end
 end
 
 def check_flex()
     unless File.directory?("#{FLEX}/bin")
-        fail("Couldn't locate Flex sdk directory, please invoke make with \"FLEX=/path/to/flex rake ...\"")
+        fail("Couldn't locate Flex sdk directory, please invoke make with \"rake FLEX=/path/to/flex ...\"")
     end
 end
 
@@ -23,20 +23,26 @@ task :swc => ["bin/h264bsd.swc"]
 
 task :test => ["test/h264test.swf"]
 
-file "lib/h264bsd_asm.swc" => SOURCES
-    check_flex()
-    FileUtils.mkdir_p("lib")
+directory "lib"
+
+directory "bin"
+
+file "lib/h264bsd_asm.swc" => ["lib"] + SOURCES do
+    check_flascc()
     sh("\"#{FLASCC}/usr/bin/gcc\" #{BASE_CFLAGS} #{SOURCES} -emit-swc=h264bsd_asm -o lib/h264bsd_asm.swc");
+end
 
-file "bin/h264bsd.swc" => AS_SOURCES + "lib/h264bsd_asm.swc"
+file "bin/h264bsd.swc" => ["lib/h264bsd_asm.swc", "bin"] + AS_SOURCES do
     check_flex()
-    FileUtils.mkdir_p("bin")
     sh("\"#{FLEX}/bin/compc\" -library-path=lib/h264bsd_asm.swc -source-path=src -include-sources=src -o bin/h264bsd.swc")
+end
 
-file "test/h264test.swf" => ["test/h264test.mxml", "bin/h264bsd.swc"]
+file "test/h264test.swf" => ["test/h264test.mxml", "bin/h264bsd.swc"] do
     check_flex()
     sh("\"#{FLEX}/bin/mxmlc\" -static-link-runtime-shared-libraries -compiler.omit-trace-statements=false -library-path+=bin/h264bsd.swc -library-path+=#{FLEX}/frameworks/libs/ -debug=true test/h264test.mxml -o test/h264test.swf")
+end
 
 task :clean do
-    FileUtils.rm_f(["*.swc", "*.swf", "bin/*.swc", "*.bc", "*.exe", "test/*.swf", "lib/*.swc"])
+    FileUtils.rm_rf(["lib", "bin"])
+    FileUtils.rm_f(FileList["*.swc", "*.swf", "*.bc", "*.exe", "test/*.swf"])
 end
