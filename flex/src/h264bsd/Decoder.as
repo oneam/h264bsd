@@ -62,7 +62,7 @@ package h264bsd
         }
         
         public function queueInput(data:ByteArray):void {
-            if(data == null) return;
+            if(data == null || data.bytesAvailable <= 0) return;
             
             if(_inputPtr != 0) {
                 var combinedData:ByteArray = new ByteArray();

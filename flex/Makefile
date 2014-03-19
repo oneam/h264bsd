@@ -33,4 +33,4 @@ test/h264test.swf: test/h264test.mxml bin/h264bsd.swc
 	"$(FLEX)/bin/mxmlc" -static-link-runtime-shared-libraries -compiler.omit-trace-statements=false -library-path+=bin/h264bsd.swc -library-path+=$(FLEX)/frameworks/libs/ -debug=true test/h264test.mxml -o test/h264test.swf
 
 clean:
-	rm -f test/*.swf lib/*.swc bin/*.swc *.bc *.exe
+	rm -f *.swc *.swf bin/*.swc *.bc *.exe test/*.swf lib/*.swc

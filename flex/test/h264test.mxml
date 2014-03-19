@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <s:Application xmlns:fx="http://ns.adobe.com/mxml/2009" 
                xmlns:s="library://ns.adobe.com/flex/spark" 
-               xmlns:mx="library://ns.adobe.com/flex/mx" minWidth="955" minHeight="600">
+               xmlns:mx="library://ns.adobe.com/flex/mx">
     <fx:Script>
         <![CDATA[
             import h264bsd.CroppingInfo;
@@ -43,6 +43,7 @@
                     switch(result)
                     {
                         case Decoder.NO_INPUT:
+                            data.position = 0;
                             decoder.queueInput(data);
                             setTimeout(loopBody, 0);
                             break;
@@ -53,22 +54,43 @@
                             break;
                         case Decoder.PIC_RDY:
                             decoder.drawNextOutputPicture(renderTarget.bitmapData);
+                            ++frameCount;
                             setTimeout(loopBody, 0);
                             break;
                         case Decoder.RDY:
                             loopBody();
                             break;
                         default:
-                            trace("An error has occured in the decoder");
-                            loopBody();
+                            throw new Error("An error has occured in the decoder");
                             break;
                     }
+                }
+
+                var lastUpdateTime:int = getTimer();
+                var lastFrameCount:int = 0;
+                var frameCount:int = 0;
+                setInterval(updateStatus, 1000);
+
+                function updateStatus():void {
+                    var updateTime:int = getTimer();
+                    var interval:int = updateTime - lastUpdateTime;
+                    lastUpdateTime = updateTime;
+
+                    var frameCountSinceLast:int = frameCount - lastFrameCount;
+                    lastFrameCount = frameCount;
+
+                    var frameRate:Number = frameCountSinceLast * 1000 / interval;
+
+                    statusLabel.text = "FPS: " + frameRate.toFixed(2);
                 }
             }
         ]]>
     </fx:Script>
     
     <s:VGroup id="main">
-        <s:Button label="Load File" click="loadFile()"/>
+        <s:HGroup id="statusPanel" verticalAlign="middle">
+            <s:Button label="Load File" click="loadFile()"/>
+            <s:Label id="statusLabel"/>
+        </s:HGroup>
     </s:VGroup>
 </s:Application>
