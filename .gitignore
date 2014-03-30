@@ -12,3 +12,6 @@ flex/bin/
 *.swf
 *.swc
 .settings
+*.xcworkspacedata
+*.xcuserstate
+xcuserdata
