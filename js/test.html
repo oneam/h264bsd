@@ -37,8 +37,15 @@
 
         // Render for each picture
         d.onHeadersReady = function () {
-            canvas.width = d.outputPictureWidth();
-            canvas.height = d.outputPictureHeight();
+            var croppingParams = d.croppingParams();
+            
+            if(croppingParams === null) {
+                canvas.width = d.outputPictureWidth();
+                canvas.height = d.outputPictureHeight();
+            } else {
+                canvas.width = croppingParams.width;
+                canvas.height = croppingParams.height;
+            }
         }
 
         // Loop with setTimeout delay to allow UI to update.

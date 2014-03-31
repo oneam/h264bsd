@@ -155,6 +155,8 @@ H264bsdCanvas.prototype.initBuffers = function() {
     var texturePosRef = gl.getAttribLocation(program, 'texturePos');
     gl.enableVertexAttribArray(texturePosRef);
     gl.vertexAttribPointer(texturePosRef, 2, gl.FLOAT, false, 0, 0);
+
+    this.texturePosBuffer = texturePosBuffer;
 }
 
 /**
@@ -215,14 +217,29 @@ H264bsdCanvas.prototype.drawNextOutputPicture = function(decoder) {
  */
 H264bsdCanvas.prototype.drawNextOuptutPictureGL = function(decoder) {
     var gl = this.contextGL;
+    var texturePosBuffer = this.texturePosBuffer;
     var yTextureRef = this.yTextureRef;
     var uTextureRef = this.uTextureRef;
     var vTextureRef = this.vTextureRef;
 
     var width = decoder.outputPictureWidth();
     var height = decoder.outputPictureHeight();
+    var croppingParams = decoder.croppingParams();
 
-    gl.viewport(0, 0, width, height);
+    if(croppingParams === null) {
+        gl.viewport(0, 0, width, height);
+    } else {
+        gl.viewport(0, 0, croppingParams.width, croppingParams.height);
+
+        var tTop = croppingParams.top / height;
+        var tLeft = croppingParams.left / width;
+        var tBottom = croppingParams.height / height;
+        var tRight = croppingParams.width / width;
+        var texturePosValues = new Float32Array([tRight, tTop, tLeft, tTop, tRight, tBottom, tLeft, tBottom]);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, texturePosBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, texturePosValues, gl.DYNAMIC_DRAW);
+    }
 
     var i420Data = decoder.nextOutputPicture();
 
