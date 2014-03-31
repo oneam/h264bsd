@@ -272,11 +272,17 @@ H264bsdCanvas.prototype.drawNextOuptutPictureRGBA = function(decoder) {
 
     var width = decoder.outputPictureWidth();
     var height = decoder.outputPictureHeight();
+    var croppingParams = decoder.croppingParams();
 
     var argbData = decoder.nextOutputPictureRGBA();
 
     var ctx = canvas.getContext('2d');
     var imageData = ctx.getImageData(0, 0, width, height);
     imageData.data.set(argbData);
-    ctx.putImageData(imageData, 0, 0);
+
+    if(croppingParams === null) {
+        ctx.putImageData(imageData, 0, 0);
+    } else {
+        ctx.putImageData(imageData, -croppingParams.left, -croppingParams.top, 0, 0, croppingParams.width, croppingParams.height);
+    }
 }
