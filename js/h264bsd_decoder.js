@@ -272,15 +272,15 @@ H264bsdDecoder.prototype.outputPictureSizeBytesRGBA = function() {
  * Returns the info used to crop output images to there final viewing dimensions.
  * If this method returns null no cropping info is provided and the full image should be presented.
  */
-H264bsdDecoder.prototype.croppingInfo = function(){
+H264bsdDecoder.prototype.croppingParams = function() {
     var module = this.module;
     var pStorage = this.pStorage;
     
-    var pCroppingFlag = self.malloc_(4);
-    var pLeftOffset = self.malloc_(4);
-    var pWidth = self.malloc_(4);
-    var pTopOffset = self.malloc_(4);
-    var pHeight = self.malloc_(4);
+    var pCroppingFlag = self._malloc(4);
+    var pLeftOffset = self._malloc(4);
+    var pWidth = self._malloc(4);
+    var pTopOffset = self._malloc(4);
+    var pHeight = self._malloc(4);
 
     module._h264bsdCroppingParams(pStorage, pCroppingFlag, pLeftOffset, pWidth, pTopOffset, pHeight);
     
