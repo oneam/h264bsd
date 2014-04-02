@@ -35,6 +35,8 @@
 		225DF43018E7C778002CE505 /* h264bsd_vlc.c in Sources */ = {isa = PBXBuildFile; fileRef = 225DF41418E7C778002CE505 /* h264bsd_vlc.c */; };
 		225DF43118E7C778002CE505 /* h264bsd_vui.c in Sources */ = {isa = PBXBuildFile; fileRef = 225DF41618E7C778002CE505 /* h264bsd_vui.c */; };
 		226ED51718E897CD00D4A03A /* H264bsdDecoder.m in Sources */ = {isa = PBXBuildFile; fileRef = 226ED51618E897CD00D4A03A /* H264bsdDecoder.m */; };
+		226ED51F18E9237D00D4A03A /* H264bsdRendererGl.m in Sources */ = {isa = PBXBuildFile; fileRef = 226ED51E18E9237D00D4A03A /* H264bsdRendererGl.m */; };
+		226ED52318EB9D3C00D4A03A /* GLKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 226ED52218EB9D3C00D4A03A /* GLKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -109,6 +111,9 @@
 		225DF41718E7C778002CE505 /* h264bsd_vui.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = h264bsd_vui.h; sourceTree = "<group>"; };
 		226ED51518E897CD00D4A03A /* H264bsdDecoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = H264bsdDecoder.h; path = src/H264bsdDecoder.h; sourceTree = "<group>"; };
 		226ED51618E897CD00D4A03A /* H264bsdDecoder.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = H264bsdDecoder.m; path = src/H264bsdDecoder.m; sourceTree = "<group>"; };
+		226ED51D18E9237D00D4A03A /* H264bsdRendererGl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = H264bsdRendererGl.h; path = src/H264bsdRendererGl.h; sourceTree = "<group>"; };
+		226ED51E18E9237D00D4A03A /* H264bsdRendererGl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = H264bsdRendererGl.m; path = src/H264bsdRendererGl.m; sourceTree = "<group>"; };
+		226ED52218EB9D3C00D4A03A /* GLKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLKit.framework; path = System/Library/Frameworks/GLKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -116,6 +121,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				226ED52318EB9D3C00D4A03A /* GLKit.framework in Frameworks */,
 				225DF3BA18E7C634002CE505 /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -144,6 +150,7 @@
 		225DF3B818E7C634002CE505 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				226ED52218EB9D3C00D4A03A /* GLKit.framework */,
 				225DF3B918E7C634002CE505 /* Foundation.framework */,
 			);
 			name = Frameworks;
@@ -217,6 +224,8 @@
 			children = (
 				226ED51518E897CD00D4A03A /* H264bsdDecoder.h */,
 				226ED51618E897CD00D4A03A /* H264bsdDecoder.m */,
+				226ED51D18E9237D00D4A03A /* H264bsdRendererGl.h */,
+				226ED51E18E9237D00D4A03A /* H264bsdRendererGl.m */,
 			);
 			name = src;
 			sourceTree = "<group>";
@@ -281,6 +290,7 @@
 				225DF41F18E7C778002CE505 /* h264bsd_inter_prediction.c in Sources */,
 				225DF41818E7C778002CE505 /* h264bsd_byte_stream.c in Sources */,
 				225DF42D18E7C778002CE505 /* h264bsd_stream.c in Sources */,
+				226ED51F18E9237D00D4A03A /* H264bsdRendererGl.m in Sources */,
 				225DF41A18E7C778002CE505 /* h264bsd_conceal.c in Sources */,
 				225DF42418E7C778002CE505 /* h264bsd_pic_order_cnt.c in Sources */,
 				225DF42C18E7C778002CE505 /* h264bsd_storage.c in Sources */,
@@ -337,8 +347,8 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
-				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				VALID_ARCHS = "armv7 armv7s";
 			};
 			name = Debug;
 		};
@@ -370,6 +380,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
 				SDKROOT = iphoneos;
 				VALIDATE_PRODUCT = YES;
+				VALID_ARCHS = "armv7 armv7s";
 			};
 			name = Release;
 		};

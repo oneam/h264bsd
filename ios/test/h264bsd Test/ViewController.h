@@ -16,8 +16,9 @@
  */
 
 #import <UIKit/UIKit.h>
+#import <GLKit/GLKit.h>
 
-@interface ViewController : UIViewController <UIApplicationDelegate>
+@interface ViewController : UIViewController <UIApplicationDelegate, GLKViewDelegate>
 
 - (void)startPlayback;
 - (void)stopPlayback;

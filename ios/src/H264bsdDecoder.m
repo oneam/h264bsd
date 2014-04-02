@@ -56,6 +56,7 @@
 {
     u32 picId, isIdrPic, numErrMbs;
     u8* data = h264bsdNextOutputPicture(self.pStorage, &picId, &isIdrPic, &numErrMbs);
+    if(!data) return nil;
     size_t length = self.outputWidth * self.outputHeight * 3 / 2;
     return [NSData dataWithBytes:data length:length];
 }
@@ -64,6 +65,7 @@
 {
     u32 picId, isIdrPic, numErrMbs;
     u32* data = h264bsdNextOutputPictureRGBA(self.pStorage, &picId, &isIdrPic, &numErrMbs);
+    if(!data) return nil;
     size_t length = self.outputWidth * self.outputHeight * 4;
     return [NSData dataWithBytes:data length:length];
 }

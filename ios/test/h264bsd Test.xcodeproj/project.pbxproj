@@ -20,6 +20,7 @@
 		225DF48618E7C9CC002CE505 /* test_1920x1080.h264 in Resources */ = {isa = PBXBuildFile; fileRef = 225DF48318E7C9CC002CE505 /* test_1920x1080.h264 */; };
 		225DF48718E7C9CC002CE505 /* test_640x360.h264 in Resources */ = {isa = PBXBuildFile; fileRef = 225DF48418E7C9CC002CE505 /* test_640x360.h264 */; };
 		226ED51918E8981300D4A03A /* libh264bsd.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 225DF47F18E7C8B8002CE505 /* libh264bsd.a */; };
+		226ED52518EB9D5100D4A03A /* GLKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 226ED52418EB9D5100D4A03A /* GLKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -48,10 +49,10 @@
 		225DF45A18E7C884002CE505 /* ViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
 		225DF45B18E7C884002CE505 /* ViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ViewController.m; sourceTree = "<group>"; };
 		225DF45D18E7C884002CE505 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
-		225DF46418E7C884002CE505 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
 		225DF47A18E7C8B8002CE505 /* h264bsd.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = h264bsd.xcodeproj; path = ../h264bsd.xcodeproj; sourceTree = "<group>"; };
 		225DF48318E7C9CC002CE505 /* test_1920x1080.h264 */ = {isa = PBXFileReference; lastKnownFileType = file; path = test_1920x1080.h264; sourceTree = "<group>"; };
 		225DF48418E7C9CC002CE505 /* test_640x360.h264 */ = {isa = PBXFileReference; lastKnownFileType = file; path = test_640x360.h264; sourceTree = "<group>"; };
+		226ED52418EB9D5100D4A03A /* GLKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLKit.framework; path = System/Library/Frameworks/GLKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,6 +60,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				226ED52518EB9D5100D4A03A /* GLKit.framework in Frameworks */,
 				226ED51918E8981300D4A03A /* libh264bsd.a in Frameworks */,
 				225DF44518E7C883002CE505 /* CoreGraphics.framework in Frameworks */,
 				225DF44718E7C883002CE505 /* UIKit.framework in Frameworks */,
@@ -91,10 +93,10 @@
 		225DF44118E7C883002CE505 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				226ED52418EB9D5100D4A03A /* GLKit.framework */,
 				225DF44218E7C883002CE505 /* Foundation.framework */,
 				225DF44418E7C883002CE505 /* CoreGraphics.framework */,
 				225DF44618E7C883002CE505 /* UIKit.framework */,
-				225DF46418E7C884002CE505 /* XCTest.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -296,9 +298,9 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
-				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				VALID_ARCHS = "armv7 armv7s";
 			};
 			name = Debug;
 		};
@@ -332,6 +334,7 @@
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
+				VALID_ARCHS = "armv7 armv7s";
 			};
 			name = Release;
 		};

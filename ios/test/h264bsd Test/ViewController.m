@@ -16,7 +16,8 @@
  */
 
 #import "ViewController.h"
-#include "H264bsdDecoder.h"
+#import "H264bsdDecoder.h"
+#import "H264bsdRendererGl.h"
 
 @interface ViewController ()
 
@@ -24,6 +25,7 @@
 @property (strong, nonatomic) H264bsdDecoder *decoder;
 @property (assign, nonatomic) NSUInteger offset;
 @property (assign, atomic) BOOL playbackStarted;
+@property (strong, nonatomic) H264bsdRendererGl *renderer;
 
 @end
 
@@ -35,7 +37,17 @@
     [self stopPlayback];
 	[self loadVideoData];
     [self initializeDecoder];
+    [self initializeView];
+}
+
+- (void)viewWillAppear:(BOOL)animated
+{
     [self startPlayback];
+}
+
+- (void)viewWillDisappear:(BOOL)animated
+{
+    [self stopPlayback];
 }
 
 - (void)didReceiveMemoryWarning
@@ -57,6 +69,27 @@
     self.decoder = decoder;
 }
 
+- (void)initializeView
+{
+    EAGLContext *context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+    
+    if (!context) {
+        NSLog(@"failed to create context");
+        return;
+    }
+    
+    self.renderer = [[H264bsdRendererGl alloc] initWithContext:context decoder:self.decoder];
+    
+    GLKView *view = (GLKView *)self.view;
+    view.delegate = self;
+    view.enableSetNeedsDisplay = YES;
+    view.context = context;
+    
+    view.drawableColorFormat = GLKViewDrawableColorFormatRGBA8888;
+    view.drawableDepthFormat = GLKViewDrawableDepthFormat24;
+    view.drawableStencilFormat = GLKViewDrawableStencilFormat8;
+}
+
 - (void)startPlayback
 {
     if(self.playbackStarted) return;
@@ -73,15 +106,14 @@
 {
     if(!self.playbackStarted) return;
     
-    NSData* nextImage = [self decodeNextImage];
-    [self displayImage:nextImage];
+    [self decodeNextImage];
 
     dispatch_async(dispatch_get_main_queue(), ^{
         [self playbackLoop];
     });
 }
 
-- (NSData*)decodeNextImage
+- (void)decodeNextImage
 {
     H264bsdStatus status = H264bsdStatusReady;
     
@@ -96,25 +128,12 @@
         if(self.offset >= self.videoData.length) self.offset = 0;
     }
     
-    NSData *nextOutputPicture = [self.decoder nextOutputPictureRGBA];
-    return nextOutputPicture;
+    [self.view setNeedsDisplay];
 }
 
-- (void)displayImage:(NSData *)nextImage
+- (void)glkView:(GLKView *)view drawInRect:(CGRect)rect
 {
-    size_t width = self.decoder.outputWidth;
-    size_t height = self.decoder.outputHeight;
-    size_t bytesPerRow = width * 4;
-    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-    CGDataProviderRef imageDataProvider = CGDataProviderCreateWithCFData((CFDataRef)nextImage);
-    
-    CGImageRef image = CGImageCreate(width, height, 8, 32, bytesPerRow, colorSpace, kCGBitmapByteOrderDefault|kCGImageAlphaLast, imageDataProvider, NULL, NO, kCGRenderingIntentDefault);
-    
-    self.view.layer.contents = (__bridge id)image;
-    
-    CGImageRelease(image);
-    CGDataProviderRelease(imageDataProvider);
-    CGColorSpaceRelease(colorSpace);
+    [self.renderer renderNextOutputPicture];
 }
 
 @end
