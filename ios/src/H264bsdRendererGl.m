@@ -49,14 +49,13 @@ static const GLfloat texcoordVertices[] = {
 
 @implementation H264bsdRendererGl
 
-- (id)initWithContext:(EAGLContext *)context decoder:(H264bsdDecoder *)decoder
+- (id)initWithContext:(EAGLContext *)context
 {
     self = [super init];
     
     if(self)
     {
         _context = context;
-        _decoder = decoder;
         
         if(![EAGLContext setCurrentContext:context]) {
             NSLog(@"failed to setup context");
@@ -142,18 +141,18 @@ static const GLfloat texcoordVertices[] = {
     glDeleteBuffers(1, &_texcoordBufferRef);
 }
 
-- (void)renderNextOutputPicture
+- (void)renderNextOutputPictureWithDecoder:(H264bsdDecoder *)decoder
 {
     if(![EAGLContext setCurrentContext:self.context]) {
         NSLog(@"failed to setup context");
         return;
     }
     
-    NSData *yuvData = [self.decoder nextOutputPicture];
+    NSData *yuvData = [decoder nextOutputPicture];
     if(!yuvData) return;
 
-    NSInteger width = self.decoder.outputWidth;
-    NSInteger height = self.decoder.outputHeight;
+    NSInteger width = decoder.outputWidth;
+    NSInteger height = decoder.outputHeight;
     NSInteger uvWidth = width/2;
     NSInteger uvHeight = height/2;
     

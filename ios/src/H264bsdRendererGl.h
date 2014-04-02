@@ -12,9 +12,8 @@
 
 @interface H264bsdRendererGl : NSObject
 @property (strong, readonly) EAGLContext *context;
-@property (strong, readonly) H264bsdDecoder *decoder;
 
-- (id)initWithContext:(EAGLContext *)context decoder:(H264bsdDecoder *)decoder;
-- (void)renderNextOutputPicture;
+- (id)initWithContext:(EAGLContext *)context;
+- (void)renderNextOutputPictureWithDecoder:(H264bsdDecoder *)decoder;
 
 @end

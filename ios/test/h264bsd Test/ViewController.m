@@ -78,7 +78,7 @@
         return;
     }
     
-    self.renderer = [[H264bsdRendererGl alloc] initWithContext:context decoder:self.decoder];
+    self.renderer = [[H264bsdRendererGl alloc] initWithContext:context];
     
     GLKView *view = (GLKView *)self.view;
     view.delegate = self;
@@ -133,7 +133,7 @@
 
 - (void)glkView:(GLKView *)view drawInRect:(CGRect)rect
 {
-    [self.renderer renderNextOutputPicture];
+    [self.renderer renderNextOutputPictureWithDecoder:self.decoder];
 }
 
 @end
