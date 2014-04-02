@@ -182,7 +182,7 @@ package h264bsd
             
             var width:int = cinfo.uncroppedWidth;
             var height:int = cinfo.uncroppedHeight;
-                        
+            
             var outputPicture:BitmapData = new BitmapData(width, height);
             outputPicture.setPixels(new Rectangle(0,0, width, height), outputPictureBytes);
             
@@ -193,11 +193,19 @@ package h264bsd
                 0, 0, 0, 1, 0
             ]);
             
-            outputPicture.applyFilter(outputPicture, outputPicture.rect, new Point(0,0), bt601Filter);
             
+            var tempData:BitmapData = new BitmapData(cinfo.width, cinfo.height);
+            tempData.lock();
             target.lock();
-            target.draw(outputPicture, transform, null, null, new Rectangle(0,0, cinfo.width, cinfo.height), true);
-            target.unlock();
+            
+            // Cropped and color converted
+            tempData.applyFilter( outputPicture, new Rectangle(0, 0, cinfo.width, cinfo.height), new Point(0, 0), bt601Filter);
+            
+            // Translated and scaled
+            target.draw(tempData, transform, null, null, null, true);
+            
+            tempData.unlock();
+            target.unlock();   
         }
 
         private function get outputByteLength():int { 
