@@ -15,3 +15,6 @@ flex/bin/
 *.xcworkspacedata
 *.xcuserstate
 xcuserdata
+win/Debug/
+win/h264bsdTest/Debug/
+*.opensdf
