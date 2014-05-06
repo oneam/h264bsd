@@ -125,7 +125,11 @@
         status = [self.decoder decode:self.videoData offset:self.offset length:length bytesRead:&bytesRead];
         
         self.offset += bytesRead;
-        if(self.offset >= self.videoData.length) self.offset = 0;
+        if(self.offset >= self.videoData.length) {
+            self.offset = 0;
+            [self loadVideoData]; // The decoder modifies the in memory data. Better flush it.
+            [self initializeDecoder]; // The decoder doesn't like the new stream discontinuity. Better refresh it.
+        }
     }
     
     [self.view setNeedsDisplay];
