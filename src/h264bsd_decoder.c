@@ -568,6 +568,8 @@ void h264bsdShutdown(storage_t *pStorage)
     FREE(pStorage->mb);
     FREE(pStorage->sliceGroupMap);
 
+    if(pStorage->conversionBuffer != NULL) FREE(pStorage->conversionBuffer);
+
     h264bsdFreeDpb(pStorage->dpb);
 
 }
@@ -652,15 +654,15 @@ u32* h264bsdNextOutputPictureRGBA(storage_t *pStorage, u32 *picId, u32 *isIdrPic
 
     if(data == NULL) return NULL;
 
-    if(pStorage->rgbConversionBufferSize < rgbSize)
+    if(pStorage->conversionBufferSize < rgbSize)
     {
-        if(pStorage->rgbConversionBuffer != NULL) free(pStorage->rgbConversionBuffer);
-        pStorage->rgbConversionBufferSize = rgbSize;
-        pStorage->rgbConversionBuffer = (u32*)malloc(rgbSize);
+        if(pStorage->conversionBuffer != NULL) free(pStorage->conversionBuffer);
+        pStorage->conversionBufferSize = rgbSize;
+        pStorage->conversionBuffer = (u32*)malloc(rgbSize);
     }
 
-    h264bsdConvertToRGBA(width, height, data, pStorage->rgbConversionBuffer);
-    return pStorage->rgbConversionBuffer;
+    h264bsdConvertToRGBA(width, height, data, pStorage->conversionBuffer);
+    return pStorage->conversionBuffer;
 }
 
 /*------------------------------------------------------------------------------
@@ -694,15 +696,15 @@ u32* h264bsdNextOutputPictureBGRA(storage_t *pStorage, u32 *picId, u32 *isIdrPic
 
     if(data == NULL) return NULL;
 
-    if(pStorage->rgbConversionBufferSize < rgbSize)
+    if(pStorage->conversionBufferSize < rgbSize)
     {
-        if(pStorage->rgbConversionBuffer != NULL) free(pStorage->rgbConversionBuffer);
-        pStorage->rgbConversionBufferSize = rgbSize;
-        pStorage->rgbConversionBuffer = (u32*)malloc(rgbSize);
+        if(pStorage->conversionBuffer != NULL) free(pStorage->conversionBuffer);
+        pStorage->conversionBufferSize = rgbSize;
+        pStorage->conversionBuffer = (u32*)malloc(rgbSize);
     }
 
-    h264bsdConvertToBGRA(width, height, data, pStorage->rgbConversionBuffer);
-    return pStorage->rgbConversionBuffer;
+    h264bsdConvertToBGRA(width, height, data, pStorage->conversionBuffer);
+    return pStorage->conversionBuffer;
 }
 
 /*------------------------------------------------------------------------------
@@ -736,15 +738,15 @@ u32* h264bsdNextOutputPictureYCbCrA(storage_t *pStorage, u32 *picId, u32 *isIdrP
 
     if(data == NULL) return NULL;
 
-    if(pStorage->rgbConversionBufferSize < rgbSize)
+    if(pStorage->conversionBufferSize < rgbSize)
     {
-        if(pStorage->rgbConversionBuffer != NULL) free(pStorage->rgbConversionBuffer);
-        pStorage->rgbConversionBufferSize = rgbSize;
-        pStorage->rgbConversionBuffer = (u32*)malloc(rgbSize);
+        if(pStorage->conversionBuffer != NULL) free(pStorage->conversionBuffer);
+        pStorage->conversionBufferSize = rgbSize;
+        pStorage->conversionBuffer = (u32*)malloc(rgbSize);
     }
 
-    h264bsdConvertToYCbCrA(width, height, data, pStorage->rgbConversionBuffer);
-    return pStorage->rgbConversionBuffer;
+    h264bsdConvertToYCbCrA(width, height, data, pStorage->conversionBuffer);
+    return pStorage->conversionBuffer;
 }
 
 /*------------------------------------------------------------------------------

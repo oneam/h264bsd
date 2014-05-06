@@ -4,6 +4,7 @@
 #include <SDKDDKVer.h>
 #include <stdio.h>
 #include <tchar.h>
+#include <Windows.h>
 
 extern "C"
 {
@@ -16,7 +17,8 @@ int _tmain(int argc, _TCHAR* argv[])
     storage_t *decoder = NULL;
     char filename[1024];
     sprintf_s(filename, 1024, "%S", argv[1]);
-    FILE *input = fopen(filename, "rb");
+    FILE *input;
+    fopen_s(&input, filename, "rb");
 
     fseek(input, 0L, SEEK_END);
     long fileSize = ftell(input);
@@ -24,10 +26,18 @@ int _tmain(int argc, _TCHAR* argv[])
     u8 *fileData = (u8*)malloc(fileSize);
     if(fileData == NULL) return 1;
 
+    LARGE_INTEGER frequency_li;
+    QueryPerformanceFrequency(&frequency_li);
+    double frequency = (double)(frequency_li.QuadPart);
+
     while(true) {
         fseek(input, 0L, SEEK_SET);
         size_t inputRead = fread(fileData, sizeof(u8), fileSize, input);
 
+        LARGE_INTEGER start;
+        QueryPerformanceCounter(&start);
+
+        double numFrames = 0;
         u8* byteStrm = fileData;
         u32 len = fileSize;
         u32 bytesRead = 0;
@@ -39,6 +49,12 @@ int _tmain(int argc, _TCHAR* argv[])
         
         while(len > 0) {
             status = h264bsdDecode(decoder, byteStrm, len, 0, &bytesRead);
+
+            if(status == H264BSD_PIC_RDY) {
+                ++numFrames;
+                u32 picId, isIdrPic, numErrMbs;
+                u32* picData = h264bsdNextOutputPictureBGRA(decoder, &picId, &isIdrPic, &numErrMbs);
+            }
 
             if(status == H264BSD_ERROR) {
                 printf("General Error with %i bytes left\n", len);
@@ -60,7 +76,12 @@ int _tmain(int argc, _TCHAR* argv[])
         h264bsdShutdown(decoder);
         h264bsdFree(decoder);
 
-        printf("Decode complete\n");
+        LARGE_INTEGER end;
+        QueryPerformanceCounter(&end);
+
+        double decodeTime = (double)(end.QuadPart - start.QuadPart) / frequency;
+
+        printf("Decode completed in %f seconds (%f fps)\n", decodeTime, numFrames/decodeTime);
     }
 
 	return 0;
