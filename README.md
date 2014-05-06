@@ -8,9 +8,9 @@ The intention is to provide a simple H.264 decoder that can be easily invoked fr
 
 ## Implementation Notes
 
-Currently, the process of decoding data modifies the data. This has tripped me a a few times in the past, so others should be aware of it.
+Currently, the process of decoding modifies the input data. This has tripped me a few times in the past so others should be aware of it.
 
-The decoder only works nicely if it has a single consistent stream to deal with. If you want to change the width/height or restart the stream with a new access unit delimiter, it's better to shutdown and recreate a new decoder.
+The decoder only works nicely if it has a single consistent stream to deal with. If you want to change the width/height or restart the stream with a new access unit delimiter, it's better to shutdown and init a new decoder.
 
 ## Directories
 
