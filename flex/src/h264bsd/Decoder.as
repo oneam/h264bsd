@@ -206,6 +206,9 @@ package h264bsd
             
             tempData.unlock();
             target.unlock();   
+			
+			outputPicture.dispose();
+			tempData.dispose();
         }
 
         private function get outputByteLength():int { 
