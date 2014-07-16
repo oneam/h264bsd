@@ -206,6 +206,9 @@ package h264bsd
             
             tempData.unlock();
             target.unlock();   
+			
+			outputPicture.dispose();
+			tempData.dispose();
         }
 
         private function get outputByteLength():int { 
@@ -283,7 +286,7 @@ package h264bsd
         }
         
         private function freeStorage():void {
-            if(_storagePtr != 0) return;
+            if(_storagePtr == 0) return;
             
             CModule.callI(_h264bsdShutdown, new <int>[this._storagePtr]);
             CModule.callI(_h264bsdFree, new <int>[this._storagePtr]);
