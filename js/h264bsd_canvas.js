@@ -202,27 +202,25 @@ H264bsdCanvas.prototype.initTexture = function() {
 /**
  * Draw yuvData in the best way possible
  */
-H264bsdCanvas.prototype.drawNextOutputPicture = function(width, height, data) {
+H264bsdCanvas.prototype.drawNextOutputPicture = function(width, height, croppingParams, data) {
     var gl = this.contextGL;
 
     if(gl) {
-        this.drawNextOuptutPictureGL(width, height, data);
+        this.drawNextOuptutPictureGL(width, height, croppingParams, data);
     } else {
-        this.drawNextOuptutPictureRGBA(width, height, data);
+        this.drawNextOuptutPictureRGBA(width, height, croppingParams, data);
     }
 }
 
 /**
  * Draw the next output picture using WebGL
  */
-H264bsdCanvas.prototype.drawNextOuptutPictureGL = function(width, height, data) {
+H264bsdCanvas.prototype.drawNextOuptutPictureGL = function(width, height, croppingParams, data) {
     var gl = this.contextGL;
     var texturePosBuffer = this.texturePosBuffer;
     var yTextureRef = this.yTextureRef;
     var uTextureRef = this.uTextureRef;
-    var vTextureRef = this.vTextureRef;
-
-    var croppingParams = null;
+    var vTextureRef = this.vTextureRef;    
 
     if(croppingParams === null) {
         gl.viewport(0, 0, width, height);
@@ -265,7 +263,7 @@ H264bsdCanvas.prototype.drawNextOuptutPictureGL = function(width, height, data) 
 /**
  * Draw next output picture using ARGB data on a 2d canvas.
  */
-H264bsdCanvas.prototype.drawNextOuptutPictureRGBA = function(width, height, data) {
+H264bsdCanvas.prototype.drawNextOuptutPictureRGBA = function(width, height, croppingParams, data) {
     var canvas = this.canvasElement;
 
     

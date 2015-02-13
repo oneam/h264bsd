@@ -35,6 +35,9 @@
         // Create the decoder and canvas
         var decoder = new Worker('h264bsd_decoder.js');
         var c = new H264bsdCanvas(canvas); 
+        var croppingParams = null;
+        var decoderWidth = null;
+        var decoderHeight = null;
 
         console.log('Created decoder and canvas');
 
@@ -44,7 +47,7 @@
                 var statusCode = e.data.statusCode;
                 if (statusCode == StatusCode.HDRS_RDY) 
                 {
-                    var croppingParams = e.data.croppingParams;
+                    croppingParams = e.data.croppingParams;
                     if(croppingParams === null) {
                         canvas.width = decoder.outputPictureWidth();
                         canvas.height = decoder.outputPictureHeight();
@@ -52,6 +55,9 @@
                         canvas.width = croppingParams.width;
                         canvas.height = croppingParams.height;
                     }
+
+                    decoderWidth = e.data.decoderWidth;
+                    decoderHeight = e.data.decoderHeight;
                 }
                 else if (statusCode == StatusCode.NO_INPUT)
                 {
@@ -61,7 +67,7 @@
             }
             else
             {
-                c.drawNextOutputPicture(canvas.width, canvas.height, new Uint8Array(e.data))
+                c.drawNextOutputPicture(decoderWidth, decoderHeight, croppingParams, new Uint8Array(e.data))
                 ++pictureCount;
             }
 

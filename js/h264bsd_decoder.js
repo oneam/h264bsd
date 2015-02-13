@@ -173,7 +173,7 @@ H264bsdDecoder.prototype.decode = function() {
     }
 
     else if(retCode == H264bsdDecoder.HDRS_RDY) {
-        postMessage({statusCode: retCode, croppingParams: this.croppingParams()})
+        postMessage({statusCode: retCode, croppingParams: this.croppingParams(), decoderWidth: this.outputPictureWidth(), decoderHeight: this.outputPictureHeight()})
     }
     else {
         postMessage({statusCode: retCode})
