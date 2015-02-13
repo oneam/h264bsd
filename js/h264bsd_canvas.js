@@ -202,29 +202,27 @@ H264bsdCanvas.prototype.initTexture = function() {
 /**
  * Draw yuvData in the best way possible
  */
-H264bsdCanvas.prototype.drawNextOutputPicture = function(decoder) {
+H264bsdCanvas.prototype.drawNextOutputPicture = function(width, height, data) {
     var gl = this.contextGL;
 
     if(gl) {
-        this.drawNextOuptutPictureGL(decoder);
+        this.drawNextOuptutPictureGL(width, height, data);
     } else {
-        this.drawNextOuptutPictureRGBA(decoder);
+        this.drawNextOuptutPictureRGBA(width, height, data);
     }
 }
 
 /**
  * Draw the next output picture using WebGL
  */
-H264bsdCanvas.prototype.drawNextOuptutPictureGL = function(decoder) {
+H264bsdCanvas.prototype.drawNextOuptutPictureGL = function(width, height, data) {
     var gl = this.contextGL;
     var texturePosBuffer = this.texturePosBuffer;
     var yTextureRef = this.yTextureRef;
     var uTextureRef = this.uTextureRef;
     var vTextureRef = this.vTextureRef;
 
-    var width = decoder.outputPictureWidth();
-    var height = decoder.outputPictureHeight();
-    var croppingParams = decoder.croppingParams();
+    var croppingParams = null;
 
     if(croppingParams === null) {
         gl.viewport(0, 0, width, height);
@@ -241,7 +239,7 @@ H264bsdCanvas.prototype.drawNextOuptutPictureGL = function(decoder) {
         gl.bufferData(gl.ARRAY_BUFFER, texturePosValues, gl.DYNAMIC_DRAW);
     }
 
-    var i420Data = decoder.nextOutputPicture();
+    var i420Data = data;
 
     var yDataLength = width * height;
     var yData = i420Data.subarray(0, yDataLength);
@@ -267,14 +265,13 @@ H264bsdCanvas.prototype.drawNextOuptutPictureGL = function(decoder) {
 /**
  * Draw next output picture using ARGB data on a 2d canvas.
  */
-H264bsdCanvas.prototype.drawNextOuptutPictureRGBA = function(decoder) {
+H264bsdCanvas.prototype.drawNextOuptutPictureRGBA = function(width, height, data) {
     var canvas = this.canvasElement;
 
-    var width = decoder.outputPictureWidth();
-    var height = decoder.outputPictureHeight();
-    var croppingParams = decoder.croppingParams();
+    
+    var croppingParams = null;
 
-    var argbData = decoder.nextOutputPictureRGBA();
+    var argbData = data;
 
     var ctx = canvas.getContext('2d');
     var imageData = ctx.getImageData(0, 0, width, height);

@@ -12,8 +12,7 @@
     <!--This is where we will display decoded frames-->
     <canvas id="canvas" width="640" height="480" style="border:solid;"></canvas>
 
-    <script src="h264bsd_asm.js"></script>
-    <script src="h264bsd_decoder.js"></script>
+    <script src="h264bsd_asm.js"></script>    
     <script src="h264bsd_canvas.js"></script>
        
     <!--<script src="h264bsd.min.js"></script>-->
@@ -21,51 +20,57 @@
     <script type="text/javascript">         
         var canvas = document.getElementById('canvas');             
 
+        StatusCode = {};
+        StatusCode.RDY = 0;
+        StatusCode.PIC_RDY = 1;
+        StatusCode.HDRS_RDY = 2;
+        StatusCode.ERROR = 3;
+        StatusCode.PARAM_SET_ERROR = 4;
+        StatusCode.MEMALLOC_ERROR = 5;
+        StatusCode.NO_INPUT = 1024;
+
         var pictureCount = 0;
         var lastPictureCount = 0;
 
         // Create the decoder and canvas
-        var d = new H264bsdDecoder(Module);
-        var c = new H264bsdCanvas(canvas);
+        var decoder = new Worker('h264bsd_decoder.js');
+        var c = new H264bsdCanvas(canvas); 
+
         console.log('Created decoder and canvas');
 
-        // Render for each picture
-        d.onPictureReady = function () {
-            c.drawNextOutputPicture(d);
-            ++pictureCount;
-        }
-
-        // Render for each picture
-        d.onHeadersReady = function () {
-            var croppingParams = d.croppingParams();
-            
-            if(croppingParams === null) {
-                canvas.width = d.outputPictureWidth();
-                canvas.height = d.outputPictureHeight();
-            } else {
-                canvas.width = croppingParams.width;
-                canvas.height = croppingParams.height;
+        decoder.addEventListener('message', function(e){
+            if (e.data.hasOwnProperty('statusCode'))
+            {
+                var statusCode = e.data.statusCode;
+                if (statusCode == StatusCode.HDRS_RDY) 
+                {
+                    var croppingParams = e.data.croppingParams;
+                    if(croppingParams === null) {
+                        canvas.width = decoder.outputPictureWidth();
+                        canvas.height = decoder.outputPictureHeight();
+                    } else {
+                        canvas.width = croppingParams.width;
+                        canvas.height = croppingParams.height;
+                    }
+                }
+                else if (statusCode == StatusCode.NO_INPUT)
+                {
+                    var copy = new Uint8Array(buf)
+                    decoder.postMessage(copy.buffer, [copy.buffer])
+                }
             }
-        }
-
-        // Loop with setTimeout delay to allow UI to update.
-        var loopBody = function() {
-            var retCode = d.decode();
-            //console.log('Decoded data. Return code: ', retCode, ' bytes remaining: ', d.inputBytesRemaining());
-
-            switch(retCode) {
-                case H264bsdDecoder.NO_INPUT:
-                    //console.log('Decoding complete');
-                    //d.release();
-                    d.queueInput(buf);
-                    setTimeout(loopBody, 0);
-                    break;
-                default:
-                    setTimeout(loopBody, 0);
-                    break;
+            else
+            {
+                c.drawNextOutputPicture(canvas.width, canvas.height, new Uint8Array(e.data))
+                ++pictureCount;
             }
-        }
 
+            decoder.postMessage({command: 'decode'});
+        });
+
+
+
+        
         function updateFpsCount() {
             var picturesSinceLastUpdate = pictureCount - lastPictureCount;
             var fpsDisplay = document.getElementById('fps_display');
@@ -85,13 +90,13 @@
 
             // Closure to capture the file information.
             reader.onload = function(e) {
-                console.log('Queueing file data...');
-                buf = e.target.result;
-                d.queueInput(buf);
+                buf = new Uint8Array(e.target.result);
+
+                var copy = new Uint8Array(buf)                
+                decoder.postMessage(copy.buffer, [copy.buffer])
                 setInterval(updateFpsCount, 1000);
 
-                console.log('Starting encode loop');
-                loopBody();
+                console.log('Starting encode loop');                
             };
 
             // Read in the image file as a data URL.
