@@ -70,8 +70,6 @@
                 c.drawNextOutputPicture(decoderWidth, decoderHeight, croppingParams, new Uint8Array(e.data))
                 ++pictureCount;
             }
-
-            decoder.postMessage({command: 'decode'});
         });
 
 

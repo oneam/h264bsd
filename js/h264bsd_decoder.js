@@ -120,6 +120,8 @@ H264bsdDecoder.prototype.queueInput = function(data) {
     this.pInput = pInput;
     this.inputLength = inputLength;
     this.inputOffset = inputOffset;
+
+    this.decode();
 }
 
 /**
@@ -146,6 +148,10 @@ H264bsdDecoder.prototype.decode = function() {
         postMessage({statusCode: H264bsdDecoder.NO_INPUT})
         return;
     }
+
+    setTimeout(function() {
+        this.decode();
+    }.bind(this), 0);
 
     var pBytesRead = module._malloc(4);
 
@@ -174,11 +180,7 @@ H264bsdDecoder.prototype.decode = function() {
 
     else if(retCode == H264bsdDecoder.HDRS_RDY) {
         postMessage({statusCode: retCode, croppingParams: this.croppingParams(), decoderWidth: this.outputPictureWidth(), decoderHeight: this.outputPictureHeight()})
-    }
-    else {
-        postMessage({statusCode: retCode})
-    }
-    
+    }    
 };
 
 /**
@@ -316,18 +318,7 @@ H264bsdDecoder.prototype.croppingParams = function() {
 };
 
 var decoder = new H264bsdDecoder(Module)
-addEventListener('message', function(e) {
-    if (e.data.hasOwnProperty('command'))
-    {
-        if (e.data.command == 'decode')
-        {
-            decoder.decode();
-        }        
-    }
-    else
-    {
-        decoder.queueInput(e.data)
-    }
-
+addEventListener('message', function(e) {    
+    decoder.queueInput(e.data)
     postMessage({statusCode: H264bsdDecoder.RDY})
 });
