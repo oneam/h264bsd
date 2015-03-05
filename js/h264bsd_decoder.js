@@ -32,10 +32,8 @@
  * An output picture may also be decoded using an H264bsdCanvas.
  * When you're done decoding, make sure to call release() to clean up internal buffers.
  */
- importScripts('h264bsd_asm.js');
 
- window = this;
-
+window = this;
 
 function H264bsdDecoder(module) {
     this.module = module;
@@ -319,6 +317,5 @@ H264bsdDecoder.prototype.croppingParams = function() {
 
 var decoder = new H264bsdDecoder(Module)
 addEventListener('message', function(e) {    
-    decoder.queueInput(e.data)
-    postMessage({statusCode: H264bsdDecoder.RDY})
+    decoder.queueInput(e.data)    
 });

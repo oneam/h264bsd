@@ -12,8 +12,8 @@
     <!--This is where we will display decoded frames-->
     <canvas id="canvas" width="640" height="480" style="border:solid;"></canvas>
 
-    <script src="h264bsd_asm.js"></script>    
-    <script src="h264bsd_canvas.js"></script>
+    <script src="h264bsd.min.js"></script>    
+    
        
     <!--<script src="h264bsd.min.js"></script>-->
 
@@ -33,7 +33,7 @@
         var lastPictureCount = 0;
 
         // Create the decoder and canvas
-        var decoder = new Worker('h264bsd_decoder.js');
+        var decoder = new Worker('h264bsd_decoder.min.js');
         var c = new H264bsdCanvas(canvas); 
         var croppingParams = null;
         var decoderWidth = null;
