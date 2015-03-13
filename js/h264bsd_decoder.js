@@ -32,6 +32,9 @@
  * An output picture may also be decoded using an H264bsdCanvas.
  * When you're done decoding, make sure to call release() to clean up internal buffers.
  */
+
+window = this;
+
 function H264bsdDecoder(module) {
     this.module = module;
     this.released = false;
@@ -87,11 +90,9 @@ H264bsdDecoder.prototype.queueInput = function(data) {
     var inputLength = this.inputLength;
     var inputOffset = this.inputOffset;
 
-    if(typeof data === 'undefined' || !(data instanceof ArrayBuffer)) {
-        throw new Error("data must be a ArrayBuffer instance")
+    if (data instanceof ArrayBuffer) {
+        data = new Uint8Array(data)
     }
-    
-    data = new Uint8Array(data);
 
     if(pInput === 0) {
         inputLength = data.byteLength;
@@ -117,6 +118,8 @@ H264bsdDecoder.prototype.queueInput = function(data) {
     this.pInput = pInput;
     this.inputLength = inputLength;
     this.inputOffset = inputOffset;
+
+    this.decode();
 }
 
 /**
@@ -139,7 +142,14 @@ H264bsdDecoder.prototype.decode = function() {
     var inputLength = this.inputLength;
     var inputOffset = this.inputOffset;
 
-    if(pInput == 0) return H264bsdDecoder.NO_INPUT;
+    if(pInput == 0) {
+        postMessage({statusCode: H264bsdDecoder.NO_INPUT})
+        return;
+    }
+
+    setTimeout(function() {
+        this.decode();
+    }.bind(this), 0);
 
     var pBytesRead = module._malloc(4);
 
@@ -161,15 +171,16 @@ H264bsdDecoder.prototype.decode = function() {
     this.inputLength = inputLength;
     this.inputOffset = inputOffset;
 
-    if(retCode == H264bsdDecoder.PIC_RDY && this.onPictureReady instanceof Function) {
-        this.onPictureReady();
+    if(retCode == H264bsdDecoder.PIC_RDY) {
+        var buf = this.nextOutputPicture();
+        postMessage(buf.buffer, [buf.buffer])
     }
 
-    if(retCode == H264bsdDecoder.HDRS_RDY && this.onHeadersReady instanceof Function) {
-        this.onHeadersReady();
-    }
+    else if(retCode == H264bsdDecoder.HDRS_RDY) {
+        postMessage({statusCode: retCode, croppingParams: this.croppingParams(), decoderWidth: this.outputPictureWidth(), decoderHeight: this.outputPictureHeight()})
+    }    
 
-    return retCode;
+    postMessage({statusCode: H264bsdDecoder.RDY});
 };
 
 /**
@@ -305,3 +316,8 @@ H264bsdDecoder.prototype.croppingParams = function() {
         'left': leftOffset
     };
 };
+
+var decoder = new H264bsdDecoder(Module)
+addEventListener('message', function(e) {    
+    decoder.queueInput(e.data)    
+});
