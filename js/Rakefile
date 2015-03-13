@@ -31,16 +31,18 @@ source_files = [
 	"h264bsd_canvas.js"
 ]
 
-worker_source_files = [
+worker_source_files = [	
 	"h264bsd_asm.js",
 	"h264bsd_decoder.js"
 ]
 file "h264bsd.min.js" => worker_source_files do
-	sh "uglifyjs #{source_files.join(' ')} -o h264bsd.min.js"
+	sh "uglifyjs #{source_files.join(' ')} -c -m -o h264bsd.min.js"
 end
 
 file "h264bsd_decoder.min.js" => worker_source_files do
-	sh "uglifyjs #{worker_source_files.join(' ')} -o h264bsd_decoder.min.js"
+	sh "uglifyjs h264bsd_decoder.js -o _h264bsd_decoder.min.js"
+	sh "cat h264bsd_asm.js > h264bsd_decoder.min.js"
+	sh "cat _h264bsd_decoder.min.js >> h264bsd_decoder.min.js"
 end
 
 task :compress => ["h264bsd.min.js", "h264bsd_decoder.min.js"]
@@ -50,6 +52,7 @@ task :clean do
 	FileUtils.rm_f("h264bsd_asm.js")
 	FileUtils.rm_f("h264bsd.min.js")
 	FileUtils.rm_f("h264bsd_decoder.min.js")
+	FileUtils.rm_f("_h264bsd_decoder.min.js")
 end
 
 desc "Check for prereq tools"
