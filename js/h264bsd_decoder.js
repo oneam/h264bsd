@@ -136,51 +136,64 @@ H264bsdDecoder.prototype.inputBytesRemaining = function() {
  * decode() will return H264bsdDecoder.NO_INPUT when there is no more data to be decoded.
  */
 H264bsdDecoder.prototype.decode = function() {
-    var module = this.module;
-    var pStorage = this.pStorage;
-    var pInput = this.pInput;
-    var inputLength = this.inputLength;
-    var inputOffset = this.inputOffset;
+    try
+    {
+        var module = this.module;
+        var pStorage = this.pStorage;
+        var pInput = this.pInput;
+        var inputLength = this.inputLength;
+        var inputOffset = this.inputOffset;
 
-    if(pInput == 0) {
-        postMessage({statusCode: H264bsdDecoder.NO_INPUT})
-        return;
+        if(pInput == 0) {
+            postMessage({statusCode: H264bsdDecoder.NO_INPUT})
+            return;
+        }
+
+        setTimeout(function() {
+            this.decode();
+        }.bind(this), 0);
+
+        var pBytesRead = module._malloc(4);
+
+        var bytesRead =0;
+        var retCode = module._h264bsdDecode(pStorage, pInput + inputOffset, inputLength - inputOffset, 0, pBytesRead);
+        
+        if (retCode == 3 || retCode == 4 || retCode == 5)
+            bytesRead = 0;
+        else
+            bytesRead = module.getValue(pBytesRead, 'i32');
+        
+        module._free(pBytesRead);
+
+        inputOffset += bytesRead;
+
+        if(inputOffset >= inputLength) {
+            module._free(pInput);
+            pInput = 0;
+            inputOffset = 0;
+            inputLength = 0;
+        }
+
+        this.pInput = pInput;
+        this.inputLength = inputLength;
+        this.inputOffset = inputOffset;
+
+        if(retCode == H264bsdDecoder.PIC_RDY) {
+            var buf = this.nextOutputPicture();
+            postMessage(buf.buffer, [buf.buffer])
+        }
+        else if(retCode == H264bsdDecoder.HDRS_RDY) {
+            postMessage({statusCode: retCode, croppingParams: this.croppingParams(), decoderWidth: this.outputPictureWidth(), decoderHeight: this.outputPictureHeight()})
+        }    
+        else
+        {
+            postMessage({statusCode: retCode});
+        }  
+    }  
+    catch (e) 
+    {
+         postMessage({statusCode: H264bsdDecoder.ERROR});
     }
-
-    setTimeout(function() {
-        this.decode();
-    }.bind(this), 0);
-
-    var pBytesRead = module._malloc(4);
-
-    var retCode = module._h264bsdDecode(pStorage, pInput + inputOffset, inputLength - inputOffset, 0, pBytesRead);
-
-    var bytesRead = module.getValue(pBytesRead, 'i32');
-    module._free(pBytesRead);
-
-    inputOffset += bytesRead;
-
-    if(inputOffset >= inputLength) {
-        module._free(pInput);
-        pInput = 0;
-        inputOffset = 0;
-        inputLength = 0;
-    }
-
-    this.pInput = pInput;
-    this.inputLength = inputLength;
-    this.inputOffset = inputOffset;
-
-    if(retCode == H264bsdDecoder.PIC_RDY) {
-        var buf = this.nextOutputPicture();
-        postMessage(buf.buffer, [buf.buffer])
-    }
-
-    else if(retCode == H264bsdDecoder.HDRS_RDY) {
-        postMessage({statusCode: retCode, croppingParams: this.croppingParams(), decoderWidth: this.outputPictureWidth(), decoderHeight: this.outputPictureHeight()})
-    }    
-
-    postMessage({statusCode: H264bsdDecoder.RDY});
 };
 
 /**
@@ -317,7 +330,14 @@ H264bsdDecoder.prototype.croppingParams = function() {
     };
 };
 
-var decoder = new H264bsdDecoder(Module)
-addEventListener('message', function(e) {    
-    decoder.queueInput(e.data)    
-});
+try
+{
+    var decoder = new H264bsdDecoder(Module)
+    addEventListener('message', function(e) {    
+        decoder.queueInput(e.data)    
+    });
+}
+catch(e)
+{
+    postMessage({statusCode: H264bsdDecoder.ERROR});
+}
