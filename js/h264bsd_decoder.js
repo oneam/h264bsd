@@ -300,19 +300,19 @@ H264bsdDecoder.prototype.croppingParams = function() {
     var module = this.module;
     var pStorage = this.pStorage;
     
-    var pCroppingFlag = self._malloc(4);
-    var pLeftOffset = self._malloc(4);
-    var pWidth = self._malloc(4);
-    var pTopOffset = self._malloc(4);
-    var pHeight = self._malloc(4);
+    var pCroppingFlag = module._malloc(4);
+    var pLeftOffset = module._malloc(4);
+    var pWidth = module._malloc(4);
+    var pTopOffset = module._malloc(4);
+    var pHeight = module._malloc(4);
 
     module._h264bsdCroppingParams(pStorage, pCroppingFlag, pLeftOffset, pWidth, pTopOffset, pHeight);
     
-    var croppingFlag = self.Module.getValue(pCroppingFlag, 'i32');  
-    var leftOffset = self.Module.getValue(pLeftOffset, 'i32');  
-    var width = self.Module.getValue(pWidth, 'i32');
-    var topOffset = self.Module.getValue(pTopOffset, 'i32');
-    var height = self.Module.getValue(pHeight, 'i32');
+    var croppingFlag = module.getValue(pCroppingFlag, 'i32');  
+    var leftOffset = module.getValue(pLeftOffset, 'i32');  
+    var width = module.getValue(pWidth, 'i32');
+    var topOffset = module.getValue(pTopOffset, 'i32');
+    var height = module.getValue(pHeight, 'i32');
 
     module._free(pCroppingFlag);
     module._free(pLeftOffset);
