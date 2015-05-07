@@ -32,6 +32,9 @@
  * An output picture may also be decoded using an H264bsdCanvas.
  * When you're done decoding, make sure to call release() to clean up internal buffers.
  */
+
+window = this;
+
 function H264bsdDecoder(module) {
     this.module = module;
     this.released = false;
@@ -87,11 +90,9 @@ H264bsdDecoder.prototype.queueInput = function(data) {
     var inputLength = this.inputLength;
     var inputOffset = this.inputOffset;
 
-    if(typeof data === 'undefined' || !(data instanceof ArrayBuffer)) {
-        throw new Error("data must be a ArrayBuffer instance")
+    if (data instanceof ArrayBuffer) {
+        data = new Uint8Array(data)
     }
-    
-    data = new Uint8Array(data);
 
     if(pInput === 0) {
         inputLength = data.byteLength;
@@ -117,6 +118,8 @@ H264bsdDecoder.prototype.queueInput = function(data) {
     this.pInput = pInput;
     this.inputLength = inputLength;
     this.inputOffset = inputOffset;
+
+    this.decode();
 }
 
 /**
@@ -133,43 +136,64 @@ H264bsdDecoder.prototype.inputBytesRemaining = function() {
  * decode() will return H264bsdDecoder.NO_INPUT when there is no more data to be decoded.
  */
 H264bsdDecoder.prototype.decode = function() {
-    var module = this.module;
-    var pStorage = this.pStorage;
-    var pInput = this.pInput;
-    var inputLength = this.inputLength;
-    var inputOffset = this.inputOffset;
+    try
+    {
+        var module = this.module;
+        var pStorage = this.pStorage;
+        var pInput = this.pInput;
+        var inputLength = this.inputLength;
+        var inputOffset = this.inputOffset;
 
-    if(pInput == 0) return H264bsdDecoder.NO_INPUT;
+        if(pInput == 0) {
+            postMessage({statusCode: H264bsdDecoder.NO_INPUT})
+            return;
+        }
 
-    var pBytesRead = module._malloc(4);
+        setTimeout(function() {
+            this.decode();
+        }.bind(this), 0);
 
-    var retCode = module._h264bsdDecode(pStorage, pInput + inputOffset, inputLength - inputOffset, 0, pBytesRead);
+        var pBytesRead = module._malloc(4);
 
-    var bytesRead = module.getValue(pBytesRead, 'i32');
-    module._free(pBytesRead);
+        var bytesRead =0;
+        var retCode = module._h264bsdDecode(pStorage, pInput + inputOffset, inputLength - inputOffset, 0, pBytesRead);
+        
+        if (retCode == 3 || retCode == 4 || retCode == 5)
+            bytesRead = 0;
+        else
+            bytesRead = module.getValue(pBytesRead, 'i32');
+        
+        module._free(pBytesRead);
 
-    inputOffset += bytesRead;
+        inputOffset += bytesRead;
 
-    if(inputOffset >= inputLength) {
-        module._free(pInput);
-        pInput = 0;
-        inputOffset = 0;
-        inputLength = 0;
+        if(inputOffset >= inputLength) {
+            module._free(pInput);
+            pInput = 0;
+            inputOffset = 0;
+            inputLength = 0;
+        }
+
+        this.pInput = pInput;
+        this.inputLength = inputLength;
+        this.inputOffset = inputOffset;
+
+        if(retCode == H264bsdDecoder.PIC_RDY) {
+            var buf = this.nextOutputPicture();
+            postMessage(buf.buffer, [buf.buffer])
+        }
+        else if(retCode == H264bsdDecoder.HDRS_RDY) {
+            postMessage({statusCode: retCode, croppingParams: this.croppingParams(), decoderWidth: this.outputPictureWidth(), decoderHeight: this.outputPictureHeight()})
+        }    
+        else
+        {
+            postMessage({statusCode: retCode});
+        }  
+    }  
+    catch (e) 
+    {
+         postMessage({statusCode: H264bsdDecoder.ERROR});
     }
-
-    this.pInput = pInput;
-    this.inputLength = inputLength;
-    this.inputOffset = inputOffset;
-
-    if(retCode == H264bsdDecoder.PIC_RDY && this.onPictureReady instanceof Function) {
-        this.onPictureReady();
-    }
-
-    if(retCode == H264bsdDecoder.HDRS_RDY && this.onHeadersReady instanceof Function) {
-        this.onHeadersReady();
-    }
-
-    return retCode;
 };
 
 /**
@@ -276,19 +300,19 @@ H264bsdDecoder.prototype.croppingParams = function() {
     var module = this.module;
     var pStorage = this.pStorage;
     
-    var pCroppingFlag = self._malloc(4);
-    var pLeftOffset = self._malloc(4);
-    var pWidth = self._malloc(4);
-    var pTopOffset = self._malloc(4);
-    var pHeight = self._malloc(4);
+    var pCroppingFlag = module._malloc(4);
+    var pLeftOffset = module._malloc(4);
+    var pWidth = module._malloc(4);
+    var pTopOffset = module._malloc(4);
+    var pHeight = module._malloc(4);
 
     module._h264bsdCroppingParams(pStorage, pCroppingFlag, pLeftOffset, pWidth, pTopOffset, pHeight);
     
-    var croppingFlag = self.Module.getValue(pCroppingFlag, 'i32');  
-    var leftOffset = self.Module.getValue(pLeftOffset, 'i32');  
-    var width = self.Module.getValue(pWidth, 'i32');
-    var topOffset = self.Module.getValue(pTopOffset, 'i32');
-    var height = self.Module.getValue(pHeight, 'i32');
+    var croppingFlag = module.getValue(pCroppingFlag, 'i32');  
+    var leftOffset = module.getValue(pLeftOffset, 'i32');  
+    var width = module.getValue(pWidth, 'i32');
+    var topOffset = module.getValue(pTopOffset, 'i32');
+    var height = module.getValue(pHeight, 'i32');
 
     module._free(pCroppingFlag);
     module._free(pLeftOffset);
@@ -305,3 +329,15 @@ H264bsdDecoder.prototype.croppingParams = function() {
         'left': leftOffset
     };
 };
+
+try
+{
+    var decoder = new H264bsdDecoder(Module)
+    addEventListener('message', function(e) {    
+        decoder.queueInput(e.data)    
+    });
+}
+catch(e)
+{
+    postMessage({statusCode: H264bsdDecoder.ERROR});
+}
