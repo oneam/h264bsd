@@ -12,69 +12,62 @@
     <!--This is where we will display decoded frames-->
     <canvas id="canvas" width="640" height="480" style="border:solid;"></canvas>
 
-    <script src="h264bsd.min.js"></script>    
-    
-       
-    <!--<script src="h264bsd.min.js"></script>-->
+    <script src="h264bsd_canvas.js"></script> 
+    <!--<script src="min/h264bsd_canvas.min.js"></script> -->
 
     <script type="text/javascript">         
         var canvas = document.getElementById('canvas');             
-
-        StatusCode = {};
-        StatusCode.RDY = 0;
-        StatusCode.PIC_RDY = 1;
-        StatusCode.HDRS_RDY = 2;
-        StatusCode.ERROR = 3;
-        StatusCode.PARAM_SET_ERROR = 4;
-        StatusCode.MEMALLOC_ERROR = 5;
-        StatusCode.NO_INPUT = 1024;
 
         var pictureCount = 0;
         var lastPictureCount = 0;
 
         // Create the decoder and canvas
-        var decoder = new Worker('h264bsd_decoder.min.js');
-        var c = new H264bsdCanvas(canvas); 
-        var croppingParams = null;
-        var decoderWidth = null;
-        var decoderHeight = null;
+        var decoder = new Worker('h264bsd_worker.js');
+        // var decoder = new Worker('min/h264bsd_worker.min.js');
+        var display = new H264bsdCanvas(canvas); 
 
         console.log('Created decoder and canvas');
 
-        decoder.addEventListener('message', function(e){
-            if (e.data.hasOwnProperty('statusCode'))
-            {
-                var statusCode = e.data.statusCode;
-                if (statusCode == StatusCode.HDRS_RDY) 
-                {
-                    croppingParams = e.data.croppingParams;
-                    if(croppingParams === null) {
-                        canvas.width = decoder.outputPictureWidth();
-                        canvas.height = decoder.outputPictureHeight();
-                    } else {
-                        canvas.width = croppingParams.width;
-                        canvas.height = croppingParams.height;
-                    }
+        decoder.addEventListener('error', function(e) {
+            console.log('Decoder error', e);
+        })
 
-                    decoderWidth = e.data.decoderWidth;
-                    decoderHeight = e.data.decoderHeight;
+        decoder.addEventListener('message', function(e) {
+            var message = e.data;
+            if (!message.hasOwnProperty('type')) return;
+
+            switch(message.type) {
+            case 'pictureParams':
+                croppingParams = message.croppingParams;
+                if(croppingParams === null) {
+                    canvas.width = message.width;
+                    canvas.height = message.height;
+                } else {
+                    canvas.width = croppingParams.width;
+                    canvas.height = croppingParams.height;
                 }
-                else if (statusCode == StatusCode.NO_INPUT)
-                {
-                    var copy = new Uint8Array(buf)
-                    decoder.postMessage(copy.buffer, [copy.buffer])
-                }
-            }
-            else
-            {
-                c.drawNextOutputPicture(decoderWidth, decoderHeight, croppingParams, new Uint8Array(e.data))
+                break;
+            case 'noInput':
+                var copy = new Uint8Array(buf);
+                decoder.postMessage({
+                    'type' : 'queueInput',
+                    'data' : copy.buffer
+                }, [copy.buffer]);
+                break;
+            case 'pictureReady':
+                display.drawNextOutputPicture(
+                    message.width, 
+                    message.height, 
+                    message.croppingParams, 
+                    new Uint8Array(message.data));
                 ++pictureCount;
+                break;
+            case 'decoderReady':
+                console.log('Decoder ready');
+                break;
             }
         });
 
-
-
-        
         function updateFpsCount() {
             var picturesSinceLastUpdate = pictureCount - lastPictureCount;
             var fpsDisplay = document.getElementById('fps_display');
@@ -97,7 +90,9 @@
                 buf = new Uint8Array(e.target.result);
 
                 var copy = new Uint8Array(buf)                
-                decoder.postMessage(copy.buffer, [copy.buffer])
+                decoder.postMessage(
+                    {'type' : 'queueInput', 'data' : copy.buffer}, 
+                    [copy.buffer]);
                 setInterval(updateFpsCount, 1000);
 
                 console.log('Starting encode loop');                

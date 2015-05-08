@@ -19,22 +19,28 @@
 //  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 //  IN THE SOFTWARE.
 //
-// TODO: Incorporate cropping information
 
 /**
  * This class can be used to render output pictures from an H264bsdDecoder to a canvas element.
  * If available the content is rendered using WebGL.
  */
-function H264bsdCanvas(canvas, forceRGB) {
+function H264bsdCanvas(canvas, forceNoGL) {
     this.canvasElement = canvas;
 
-    if(!forceRGB) this.initContextGL();
+    if(!forceNoGL) this.initContextGL();
 
     if(this.contextGL) {
         this.initProgram();
         this.initBuffers();
         this.initTextures();
     }
+}
+
+/**
+ * Returns true if the canvas supports WebGL
+ */
+H264bsdCanvas.prototype.isWebGL = function() {
+    return this.contextGL;
 }
 
 /**
@@ -200,7 +206,9 @@ H264bsdCanvas.prototype.initTexture = function() {
 }
 
 /**
- * Draw yuvData in the best way possible
+ * Draw picture data to the canvas.
+ * If this object is using WebGL, the data must be an I420 formatted ArrayBuffer,
+ * Otherwise, data must be an RGBA formatted ArrayBuffer.
  */
 H264bsdCanvas.prototype.drawNextOutputPicture = function(width, height, croppingParams, data) {
     var gl = this.contextGL;
@@ -266,7 +274,6 @@ H264bsdCanvas.prototype.drawNextOuptutPictureGL = function(width, height, croppi
 H264bsdCanvas.prototype.drawNextOuptutPictureRGBA = function(width, height, croppingParams, data) {
     var canvas = this.canvasElement;
 
-    
     var croppingParams = null;
 
     var argbData = data;
