@@ -32,11 +32,11 @@ while(status != H264bsdDecoder.NO_INPUT) {
 }
 ```
 
-This code will decode H.264 annex B encoded bytes stored in a Uint8Array. Each call to decode() will decode a single NAL unit, so you need to keep calling it until all of the input data is consumed. Note that each call to decode() is synchronous and blocking, so you may want to delay subsequent calls or wrap the whole things in a web worker to keep your app responsive.
+This code will decode H.264 annex B encoded bytes stored in a Uint8Array. Each call to `decode()` will decode a single NAL unit, so you need to keep calling it until all of the input data is consumed. Note that each call to `decode()` is synchronous and blocking, so you may want to delay subsequent calls or wrap the whole things in a web worker to keep your app responsive.
 
-decode() returns H264bsdDecoder.HDRS_RDY when the output size and cropping information are available and H264bsdDecoder.PIC_RDY when there is a picture ready to render. The decoder will also call the callbacks onHeadersReady and onPictureReady to simplify your code. Use nextOutputPicture or nextOutputPictureRGBA to retrieve i420 or RGBA encoded bytes for the next picture.
+`decode()` returns H264bsdDecoder.HDRS_RDY when the output size and cropping information are available and H264bsdDecoder.PIC_RDY when there is a picture ready to render. The decoder will also call the callbacks onHeadersReady and onPictureReady to simplify your code. Use nextOutputPicture or nextOutputPictureRGBA to retrieve i420 or RGBA encoded bytes for the next picture.
 
-H264bsdCanvas will create a 3d context and use a shader program to display YUV encoded data obtained directly from decoder.nextOutputPicture(). If WebGL is not available (isWebGL() returns false), it will use a 2d context to draw the output, which requires data obtained from decoder.nextOutputPictureRGBA().
+H264bsdCanvas will create a 3d context and use a shader program to display YUV encoded data obtained directly from `decoder.nextOutputPicture()`. If WebGL is not available (`isWebGL()` returns false), it will use a 2d context to draw the output, which requires data obtained from `decoder.nextOutputPictureRGBA()`.
 
 ## Using the web worker
 
@@ -98,6 +98,6 @@ decoder.postMessage({'type' : 'queueInput', 'data' : myUint8Array.buffer}, [myUi
 ## Minified Javascript
 
 The min directory contains minified versions of the h264bsd components:
-* h264bsd_full.min.js contains the decoder, canvas and asm (Everything needed to decode and display directly)
-* h264bsd_worker.min.js contains the decoder, asm and web worker (Everything needed to execute the worker, and can be the target of a new Worker creation)
-* h264bsd_canvas.min.js contains the convas (To be used in conjunction with h264bsd_worker.min.js)
+* `h264bsd_full.min.js` contains the decoder, canvas and asm (Everything needed to decode and display directly)
+* `h264bsd_worker.min.js` contains the decoder, asm and web worker (Everything needed to execute the worker, and can be the target of a new Worker creation)
+* `h264bsd_canvas.min.js` contains the convas (To be used in conjunction with `h264bsd_worker.min.js`)
