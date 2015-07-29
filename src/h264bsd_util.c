@@ -187,7 +187,7 @@ u32 h264bsdMoreRbspData(strmData_t *pStrmData)
         return(HANTRO_FALSE);
 
     if ( (bits > 8) ||
-         ((h264bsdShowBits32(pStrmData)>>(32-bits)) != (1 << (bits-1))) )
+         ((h264bsdShowBits32(pStrmData)>>(32-bits)) != (1ul << (bits-1))) )
         return(HANTRO_TRUE);
     else
         return(HANTRO_FALSE);
@@ -221,7 +221,7 @@ u32 h264bsdNextMbAddress(u32 *pSliceGroupMap, u32 picSizeInMbs, u32 currMbAddr)
 
 /* Variables */
 
-    u32 i, sliceGroup, tmp;
+    u32 i, sliceGroup;
 
 /* Code */
 
@@ -232,11 +232,9 @@ u32 h264bsdNextMbAddress(u32 *pSliceGroupMap, u32 picSizeInMbs, u32 currMbAddr)
     sliceGroup = pSliceGroupMap[currMbAddr];
 
     i = currMbAddr + 1;
-    tmp = pSliceGroupMap[i];
-    while ((i < picSizeInMbs) && (tmp != sliceGroup))
+    while ((i < picSizeInMbs) && (pSliceGroupMap[i] != sliceGroup))
     {
         i++;
-        tmp = pSliceGroupMap[i];
     }
 
     if (i == picSizeInMbs)

@@ -1,0 +1,46 @@
+CC = "cc"
+AR = "ar"
+
+if ENV["DEBUG"]
+  CC_FLAGS = ENV["CC_FLAGS"] || "-O0 -g4 -D_ASSERT_USED -D_ERROR_PRINT"
+else
+  CC_FLAGS = ENV["CC_FLAGS"] || "-O3 -D_ERROR_PRINT"
+end
+
+static_lib = "lib/libh264bsd.a"
+test_app = "bin/test_h264bsd"
+
+directory "obj"
+directory "bin"
+directory "lib"
+
+# Convert .c file in ../src to .o file in obj
+rule ".o" => ->(o_file) {[o_file.gsub(/o$/, 'c').gsub("obj/", "../src/"), "obj"]} do |t|
+  sh "#{CC} #{t.source} -c #{CC_FLAGS} -o #{t.name}"
+end
+
+# Use all .c files in the ../src directory
+o_files = FileList["../src/*.c"].gsub(/c$/, 'o').gsub("../src/", "obj/")
+
+# Build static lib
+file static_lib => o_files + ["lib"] do |t|
+  sh "#{AR} rcs #{static_lib} #{o_files.join(' ')}"
+end
+
+# Build test application
+file test_app => [static_lib, "test_h264bsd.c", "bin"] do |t|
+  sh "#{CC} test_h264bsd.c -Llib -lh264bsd -o #{test_app}"
+end
+
+# Run test application
+task :test => test_app do |t|
+  sh "#{test_app} ../test/test_1920x1080.h264"
+end
+
+task :clean do
+  FileUtils.rm_rf("obj")
+  FileUtils.rm_rf("bin")
+  FileUtils.rm_rf("lib")
+end
+
+task :default => [static_lib]

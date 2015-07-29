@@ -33,6 +33,7 @@
     1. Include headers
 ------------------------------------------------------------------------------*/
 
+#include <stdint.h>
 #include "basetype.h"
 #include "h264bsd_cfg.h"
 #include "h264bsd_stream.h"
@@ -150,7 +151,7 @@
 }
 
 #define ALIGN(ptr, bytePos) \
-        (ptr + ( ((bytePos - (int)ptr) & (bytePos - 1)) / sizeof(*ptr) ))
+        (ptr + ( ((bytePos - (uintptr_t)ptr) & (bytePos - 1)) / sizeof(*ptr) ))
 
 extern const u32 h264bsdQpC[52];
 
