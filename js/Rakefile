@@ -24,7 +24,7 @@ export_functions = [
 ]
 
 file "h264bsd_asm.js" => o_files do                                     
-	sh "emcc #{o_files.join(' ')} --memory-init-file 0 -s TOTAL_MEMORY=67108864 -s EXPORT_ALL=1 #{EMCC_FLAGS} -o h264bsd_asm.js"
+	sh "emcc #{o_files.join(' ')} --memory-init-file 0 -s TOTAL_MEMORY=134217728 -s EXPORTED_FUNCTIONS='[\"#{export_functions.join('", "')}\"]' #{EMCC_FLAGS} -o h264bsd_asm.js"
 end
 
 source_files = [
