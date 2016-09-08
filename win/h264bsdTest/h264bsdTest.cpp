@@ -53,7 +53,7 @@ int _tmain(int argc, _TCHAR* argv[])
             if(status == H264BSD_PIC_RDY) {
                 ++numFrames;
                 u32 picId, isIdrPic, numErrMbs;
-                u32* picData = h264bsdNextOutputPictureBGRA(decoder, &picId, &isIdrPic, &numErrMbs);
+                u8* picData = h264bsdNextOutputPicture(decoder, &picId, &isIdrPic, &numErrMbs);
             }
 
             if(status == H264BSD_ERROR) {
@@ -81,7 +81,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
         double decodeTime = (double)(end.QuadPart - start.QuadPart) / frequency;
 
-        printf("Decode completed in %f seconds (%f fps)\n", decodeTime, numFrames/decodeTime);
+        printf("Decoded %.0f frames in %f seconds (%f fps or %f ms per frame)\n", numFrames, decodeTime, numFrames / decodeTime, decodeTime / numFrames * 1000.0);
     }
 
 	return 0;
