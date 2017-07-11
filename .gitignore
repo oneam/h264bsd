@@ -22,6 +22,8 @@ win/h264bsdTest/Debug/
 .DS_Store
 ios/build/
 ios/test/build/
+posix/include/
 posix/bin/
 posix/lib/
 posix/obj/
+test/output/
