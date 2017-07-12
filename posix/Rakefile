@@ -50,13 +50,18 @@ task :test => [test_app] do |t|
 end
 
 # Run test application
-task :test_repeatedy => [test_app] do |t|
+task :test_640x360 => [test_app] do |t|
+  sh "#{test_app} ../test/test_640x360.h264"
+end
+
+# Run test application decoding repeatedy until stopped
+task :test_repeat => [test_app] do |t|
   sh "#{test_app} -r ../test/test_1920x1080.h264"
 end
 
-# Run test application
-task :test_output => ["../test/output", test_app] do |t|
-  sh "#{test_app} -o ../test/output ../test/test_1920x1080.h264"
+# Run test application and compare to test/output
+task :test_compare => [test_app] do |t|
+  sh "#{test_app} -c ../test/output/1920x1080 ../test/test_1920x1080.h264"
 end
 
 task :clean do
