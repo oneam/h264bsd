@@ -1,9 +1,5 @@
 require 'open-uri'
 
-def output_dir(size)
-  sprintf("output/%s", size)
-end
-
 def raw_dir(size)
   sprintf("raw/%s", size)
 end
@@ -44,19 +40,19 @@ end
 
 task :generate_test_data => ["test_640x360.h264", "test_1920x1080.h264"]
 
-directory output_dir("640x360")
-directory output_dir("1920x1080")
 
-task :generate_output_data => ["test_640x360.h264", "test_1920x1080.h264", output_dir("640x360"), output_dir("1920x1080")] do
-  sh "ffmpeg -y -i test_640x360.h264 -c:v rawvideo -f image2 -pix_fmt yuv420p output/640x360/frame_%02d.yuv"
-  sh "ffmpeg -y -i test_1920x1080.h264 -c:v rawvideo -f image2 -pix_fmt yuv420p output/1920x1080/frame_%02d.yuv"
+rule ".yuv" => ".h264" do |t|
+  sh "ffmpeg -y -i #{t.source} -c:v rawvideo -pix_fmt yuv420p #{t.name}"
 end
+
+task :generate_output_data => ["test_640x360.yuv", "test_1920x1080.yuv"]
 
 task :clean do
   FileUtils.rm_rf "raw"
-  FileUtils.rm_rf "output"
   FileUtils.rm_f "test_640x360.h264"
   FileUtils.rm_f "test_1920x1080.h264"
+  FileUtils.rm_f "test_640x360.yuv"
+  FileUtils.rm_f "test_1920x1080.yuv"
 end
 
 task :default => [:generate_test_data]
