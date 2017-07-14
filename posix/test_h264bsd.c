@@ -11,8 +11,8 @@
 #include "../src/h264bsd_decoder.h"
 #include "../src/h264bsd_util.h"
 
-static char* outputDir = NULL;
-static char* compareDir = NULL;
+static char* outputPath = NULL;
+static char* comparePath = NULL;
 static int repeatTest = 0;
 
 void createContentBuffer(char* contentPath, u8** pContentBuffer, size_t* pContentSize) {
@@ -41,36 +41,35 @@ void loadContent(char* contentPath, u8* contentBuffer, size_t contentSize) {
   fclose(input);
 }
 
-void saveImage(u8* picData, int width, int height, int picNum) {
-  char picPath[128];
-  sprintf(picPath, "%s/frame_%02d.yuv", outputDir, picNum);
+static FILE *outputFile = NULL;
 
-  FILE *output = fopen(picPath, "w");
-  if (output == NULL) {
-    perror("open failed");
-    exit(1);
+void savePic(u8* picData, int width, int height, int picNum) {
+  if(outputFile == NULL) {
+    outputFile = fopen(outputPath, "w");
+    if (outputFile == NULL) {
+      perror("output file open failed");
+      exit(1);
+    }
   }
 
   size_t picSize = width * height * 3 / 2;
   off_t offset = 0;
   while (offset < picSize) {
-    offset += fwrite(picData + offset, sizeof(u8), picSize - offset, output);
+    offset += fwrite(picData + offset, sizeof(u8), picSize - offset, outputFile);
   }
-
-  fclose(output);
 }
 
+static FILE *compareFile = NULL;
 static u8* expectedData = NULL;
 static int totalErrors = 0;
 
-int compareImage(u8* actualData, int width, int height, int picNum) {
-  char expectedPath[128];
-  sprintf(expectedPath, "%s/frame_%02d.yuv", compareDir, picNum);
-
-  FILE *input = fopen(expectedPath, "r");
-  if (input == NULL) {
-    perror("open failed");
-    exit(1);
+int comparePics(u8* actualData, int width, int height, int picNum) {
+  if(compareFile == NULL) {
+    compareFile = fopen(comparePath, "r");
+    if (compareFile == NULL) {
+      perror("compare file open failed");
+      exit(1);
+    }
   }
 
   size_t picSize = width * height * 3 / 2;
@@ -81,10 +80,8 @@ int compareImage(u8* actualData, int width, int height, int picNum) {
 
   off_t offset = 0;
   while (offset < picSize) {
-    offset += fread(expectedData + offset, sizeof(u8), picSize - offset, input);
+    offset += fread(expectedData + offset, sizeof(u8), picSize - offset, compareFile);
   }
-
-  fclose(input);
 
   int numErrors = 0;
 
@@ -155,8 +152,8 @@ void decodeContent (u8* contentBuffer, size_t contentSize) {
       case H264BSD_PIC_RDY:
         pic = h264bsdNextOutputPicture(&dec, &picId, &isIdrPic, &numErrMbs);
         ++numPics;
-        if (outputDir) saveImage(pic, width, height, numPics);
-        if (compareDir) totalErrors += compareImage(pic, width, height, numPics);
+        if (outputPath) savePic(pic, width, height, numPics);
+        if (comparePath) totalErrors += comparePics(pic, width, height, numPics);
         break;
       case H264BSD_HDRS_RDY:
         h264bsdCroppingParams(&dec, &croppingFlag, &left, &width, &top, &height);
@@ -182,7 +179,7 @@ void decodeContent (u8* contentBuffer, size_t contentSize) {
   h264bsdShutdown(&dec);
 
   printf("Test file complete. %d pictures decoded.\n", numPics);
-  if (compareDir) printf("%d errors found.\n", totalErrors);
+  if (comparePath) printf("%d errors found.\n", totalErrors);
 }
 
 int main(int argc, char *argv[]) {
@@ -190,10 +187,10 @@ int main(int argc, char *argv[]) {
   while ((c = getopt (argc, argv, "ro:c:")) != -1) {
     switch (c) {
       case 'o':
-        outputDir = optarg;
+        outputPath = optarg;
         break;
       case 'c':
-        compareDir = optarg;
+        comparePath = optarg;
         break;
       case 'r':
         repeatTest = 1;
@@ -204,7 +201,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (argc < 2) {
-    fprintf(stderr, "Usage: %s [-r] [-c <actualDir>] [-o <outputDir>] <test_video.h264>\n", argv[0]);
+    fprintf(stderr, "Usage: %s [-r] [-c <compare.yuv>] [-o <output.yuv>] <test_video.h264>\n", argv[0]);
     exit(1);
   }
 
@@ -222,4 +219,7 @@ int main(int argc, char *argv[]) {
     loadContent(contentPath, contentBuffer, contentSize);
     decodeContent(contentBuffer, contentSize);
   }
+
+  if(outputFile) fclose(outputFile);
+  if(compareFile) fclose(compareFile);
 }

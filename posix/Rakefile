@@ -61,7 +61,12 @@ end
 
 # Run test application and compare to test/output
 task :test_compare => [test_app] do |t|
-  sh "#{test_app} -c ../test/output/1920x1080 ../test/test_1920x1080.h264"
+  sh "#{test_app} -c ../test/test_1920x1080.yuv ../test/test_1920x1080.h264"
+end
+
+# Run test application decoding repeatedy until stopped
+task :test_output => [test_app] do |t|
+  sh "#{test_app} -o ../test/test_1920x1080_posix.yuv ../test/test_1920x1080.h264"
 end
 
 task :clean do
