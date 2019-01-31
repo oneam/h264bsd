@@ -6,9 +6,7 @@ matrix:
         - gcc
       dist: trusty
       script:
-        - cd posix
-        - rake
-        - rake test
+        - rake ci_build_posix
     - language: node_js
       node_js:
         - node
@@ -21,9 +19,7 @@ matrix:
         - docker exec -it emscripten apt-get -y install rake
         - docker exec -it emscripten npm install uglify-js -g
       script:
-        - docker exec -it -e PATH=${PATH}:/emsdk_portable/node/bin emscripten bash -c "cd js && rake clean default"
-        - cd js
-        - node test_node.js
+        - docker exec -it -e PATH=${PATH}:/emsdk_portable/node/bin emscripten rake ci_build_js
     - language: node_js
       node_js:
         - node
@@ -35,6 +31,4 @@ matrix:
         - docker exec -it emscripten apt-get update
         - docker exec -it emscripten apt-get -y install rake
       script:
-        - docker exec -it emscripten bash -c "cd wasm && rake clean default"
-        - cd wasm
-        - node test_node.js
+        - docker exec -it emscripten rake ci_build_wasm

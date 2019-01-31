@@ -81,4 +81,10 @@ task :server do
 	WEBrick::HTTPServer.new(:Port => 8000, :DocumentRoot => Dir.pwd).start
 end
 
-task :default => [:setup, :compress]
+task :build => [:setup, :compress]
+
+task :test do
+	sh "node test_node.js"
+end
+
+task :default => [:build]
