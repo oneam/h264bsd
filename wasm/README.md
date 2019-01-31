@@ -4,7 +4,7 @@ This implementation was compiled with emscripten and includes tools for renderin
 
 Here's an example of how to use it:
 ```
-var decoder = new H264bsdDecoder();
+var decoder = new H264bsdDecoder(Module);
 var display = new H264bsdCanvas(myCanvasElement);
 
 // Render output to the canvas when a new picture is ready
@@ -26,9 +26,12 @@ decoder.onHeadersReady = function() {
 decoder.queueInput(myUint8Array);
 
 // Pump the decode loop
+// Note the recursive call with a setTimeout that gives the browser a chance to refresh the page or process incoming messages.
 var status = H264bsdDecoder.RDY;
-while(status != H264bsdDecoder.NO_INPUT) {
+function decodeLoop() {
+    if (status == H264bsdDecoder.NO_INPUT) return;
     status = decoder.decode();
+    setTimeout(decodeLoop, 0);
 }
 ```
 

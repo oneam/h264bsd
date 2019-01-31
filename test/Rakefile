@@ -38,6 +38,7 @@ file "test_1920x1080.h264" => raw_files("1920x1080") do |f|
   sh "ffmpeg -y -start_number 5208 -i raw/1920x1080/big_buck_bunny_%05d.png -pix_fmt yuv420p -c:v libx264 -x264-params keyint=40 -profile:v baseline -f rawvideo test_1920x1080.h264"
 end
 
+desc "Generate encoded test h264 files."
 task :generate_test_data => ["test_640x360.h264", "test_1920x1080.h264"]
 
 
@@ -45,6 +46,7 @@ rule ".yuv" => ".h264" do |t|
   sh "ffmpeg -y -i #{t.source} -c:v rawvideo -pix_fmt yuv420p #{t.name}"
 end
 
+desc "Generate decoded yuv test data using ffmpeg. This data is used when comparing decoded output with a known-good sample."
 task :generate_output_data => ["test_640x360.yuv", "test_1920x1080.yuv"]
 
 task :clean do

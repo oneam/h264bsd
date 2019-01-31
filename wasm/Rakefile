@@ -29,13 +29,13 @@ exported_runtime_methods = [
 
 EXPORT_FLAGS = "-s EXTRA_EXPORTED_RUNTIME_METHODS='#{JSON.generate(exported_runtime_methods)}' -s EXPORTED_FUNCTIONS='#{JSON.generate(exported_functions)}'"
 
-file "h264bsd_asm.js" => c_files do
-	sh "emcc #{c_files.join(' ')} #{EMCC_FLAGS} #{EXPORT_FLAGS} -o h264bsd_asm.js"
+file "h264bsd_wasm.js" => c_files do
+	sh "emcc #{c_files.join(' ')} #{EMCC_FLAGS} #{EXPORT_FLAGS} -o h264bsd_wasm.js"
 end
 
 task :clean do
-	FileUtils.rm_f("h264bsd_asm.js")
-	FileUtils.rm_f("h264bsd_asm.wasm")
+	FileUtils.rm_f("h264bsd_wasm.js")
+	FileUtils.rm_f("h264bsd_wasm.wasm")
 end
 
 desc "Check for prereq tools"
@@ -49,4 +49,4 @@ task :server do
 	WEBrick::HTTPServer.new(:Port => 8000, :DocumentRoot => Dir.pwd).start
 end
 
-task :default => [:setup, 'h264bsd_asm.js']
+task :default => [:setup, 'h264bsd_wasm.js']

@@ -1,3 +1,6 @@
+var noInput = true;
+var decoder = null;
+
 var Module = {
   onRuntimeInitialized: function() {
     decoder = new H264bsdDecoder(Module);
@@ -6,11 +9,6 @@ var Module = {
     postMessage({'type': 'decoderReady'});
   }
 };
-
-importScripts('h264bsd_decoder.js', 'h264bsd_asm.js')
-
-var noInput = true;
-var decoder = null;
 
 function onMessage(e) {
     var message = e.data;
@@ -76,3 +74,4 @@ function decodeLoop() {
 }
 
 addEventListener('message', onMessage);
+importScripts('h264bsd_decoder.js', 'h264bsd_wasm.js')

@@ -21,6 +21,5 @@ The decoder only works nicely if it has a single consistent stream to deal with.
 * *js* JavaScript version of the library created using [emscripten](http://emscripten.org/).
 * *wasm* JavaScript version using WebAssembly created using [emscripten](http://emscripten.org/).
 * *ios* XCode project and objective-c wrapper classes.
-* *flex* ActionScript version of the library built using [CrossBridge](http://adobe-flash.github.io/crossbridge/).
 
 This project was heavily inspired by [Broadway.js](https://github.com/mbebenita/Broadway). Much love to them for pioneering the idea.

@@ -33,8 +33,6 @@
  * When you're done decoding, make sure to call release() to clean up internal buffers.
  */
 
-window = this;
-
 function H264bsdDecoder(module) {
     this.module = module;
     this.released = false;
@@ -329,3 +327,7 @@ H264bsdDecoder.prototype.croppingParams = function() {
         'left': leftOffset
     };
 };
+
+if (typeof module !== "undefined") {
+    module.exports = H264bsdDecoder;
+}
