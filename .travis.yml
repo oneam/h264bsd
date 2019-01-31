@@ -16,9 +16,10 @@ matrix:
       services:
         - docker
       before_install:
-        - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash
+        - docker run -dit --name emscripten -v $(pwd)/..:/src trzeci/emscripten:latest bash
       script:
         - cd js
+        - docker exec -it emscripten apt-get rake
         - docker exec -it emscripten rake
         - node test_node.js
     - language: node_js
@@ -28,8 +29,9 @@ matrix:
       services:
         - docker
       before_install:
-        - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash
+        - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:latest bash
       script:
         - cd wasm
+        - docker exec -it emscripten apt-get rake
         - docker exec -it emscripten rake
         - node test_node.js
