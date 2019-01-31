@@ -16,11 +16,12 @@ matrix:
       services:
         - docker
       before_install:
-        - docker run -dit --name emscripten -v $(pwd)/..:/src trzeci/emscripten:latest bash
+        - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:latest bash
+        - docker exec -it emscripten apt-get update
+        - docker exec -it emscripten apt-get -y install rake
       script:
+        - docker exec -it -e PATH=${PATH}:/emsdk_portable/node/bin -w /src/js emscripten rake clean default
         - cd js
-        - docker exec -it emscripten gem install rake
-        - docker exec -it emscripten rake
         - node test_node.js
     - language: node_js
       node_js:
@@ -30,8 +31,9 @@ matrix:
         - docker
       before_install:
         - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:latest bash
+        - docker exec -it emscripten apt-get update
+        - docker exec -it emscripten apt-get -y install rake
       script:
+        - docker exec -it -w /src/wasm emscripten rake clean default
         - cd wasm
-        - docker exec -it emscripten gem install rake
-        - docker exec -it emscripten rake
         - node test_node.js
