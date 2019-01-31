@@ -19,8 +19,9 @@ matrix:
         - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:latest bash
         - docker exec -it emscripten apt-get update
         - docker exec -it emscripten apt-get -y install rake
+        - docker exec -it emscripten npm install uglify-js -g
       script:
-        - docker exec -it -e PATH=${PATH}:/emsdk_portable/node/bin -w /src/js emscripten rake clean default
+        - docker exec -it -e PATH=${PATH}:/emsdk_portable/node/bin emscripten bash -c "cd js && rake clean default"
         - cd js
         - node test_node.js
     - language: node_js
@@ -34,6 +35,6 @@ matrix:
         - docker exec -it emscripten apt-get update
         - docker exec -it emscripten apt-get -y install rake
       script:
-        - docker exec -it -w /src/wasm emscripten rake clean default
+        - docker exec -it emscripten bash -c "cd wasm && rake clean default"
         - cd wasm
         - node test_node.js
