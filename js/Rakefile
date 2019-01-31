@@ -3,11 +3,7 @@ require 'json'
 EMCC_FLAGS = ENV["EMCC_FLAGS"] || "-O0 -g4 -D_ASSERT_USED -D_ERROR_PRINT --memory-init-file 0 -s TOTAL_MEMORY=67108864 -s WASM=0" if ENV["DEBUG"]
 EMCC_FLAGS = ENV["EMCC_FLAGS"] || "-O3 -D_ERROR_PRINT --memory-init-file 0 -s TOTAL_MEMORY=67108864 -s WASM=0" unless ENV["DEBUG"]
 
-rule '.o' => ['.c'] do |t|
-  sh "emcc #{t.source} -c #{EMCC_FLAGS} -o #{t.name}"
-end
-
-o_files = FileList["../src/*.c"].gsub(/c$/, 'o')
+c_files = FileList["../src/*.c"]
 
 exported_functions = [
 	"_malloc",
@@ -32,8 +28,8 @@ exported_runtime_methods = [
 
 EXPORT_FLAGS = "-s LINKABLE=1 -s EXTRA_EXPORTED_RUNTIME_METHODS='#{JSON.generate(exported_runtime_methods)}' -s EXPORTED_FUNCTIONS='#{JSON.generate(exported_functions)}'"
 
-file "h264bsd_asm.js" => o_files do                                     
-	sh "emcc #{o_files.join(' ')} #{EMCC_FLAGS} #{EXPORT_FLAGS} -o h264bsd_asm.js"
+file "h264bsd_asm.js" do                                     
+	sh "emcc #{c_files.join(' ')} #{EMCC_FLAGS} #{EXPORT_FLAGS} -o h264bsd_asm.js"
 end
 
 directory "min"
@@ -69,7 +65,6 @@ end
 task :compress => ["min/h264bsd_full.min.js", "min/h264bsd_canvas.min.js", "min/h264bsd_worker.min.js"]
 
 task :clean do
-	o_files.each{|o| FileUtils.rm_f(o)}
 	FileUtils.rm_f("h264bsd_asm.js")
 	FileUtils.rm_rf("min")
 end
@@ -86,4 +81,10 @@ task :server do
 	WEBrick::HTTPServer.new(:Port => 8000, :DocumentRoot => Dir.pwd).start
 end
 
-task :default => [:setup, :compress]
+task :build => [:setup, :compress]
+
+task :test do
+	sh "node test_node.js"
+end
+
+task :default => [:build]

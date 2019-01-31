@@ -49,4 +49,10 @@ task :server do
 	WEBrick::HTTPServer.new(:Port => 8000, :DocumentRoot => Dir.pwd).start
 end
 
-task :default => [:setup, 'h264bsd_wasm.js']
+task :build => [:setup, 'h264bsd_wasm.js']
+
+task :test do
+	sh "node test_node.js"
+end
+
+task :default => [:build]
