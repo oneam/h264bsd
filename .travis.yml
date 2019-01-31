@@ -19,7 +19,7 @@ matrix:
         - docker run -dit --name emscripten -v $(pwd)/..:/src trzeci/emscripten:latest bash
       script:
         - cd js
-        - docker exec -it emscripten apt-get install rake
+        - docker exec -it emscripten gem install rake
         - docker exec -it emscripten rake
         - node test_node.js
     - language: node_js
@@ -32,6 +32,6 @@ matrix:
         - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:latest bash
       script:
         - cd wasm
-        - docker exec -it emscripten apt-get install rake
+        - docker exec -it emscripten gem install rake
         - docker exec -it emscripten rake
         - node test_node.js
