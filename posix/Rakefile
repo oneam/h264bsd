@@ -2,9 +2,9 @@ CC = "cc"
 AR = "ar"
 
 if ENV["DEBUG"]
-  CC_FLAGS = ENV["CC_FLAGS"] || "-std=c99 -O0 -g4 -D_ASSERT_USED -D_ERROR_PRINT"
+  CC_FLAGS = ENV["CC_FLAGS"] || "-std=gnu99 -O0 -g4 -D_ASSERT_USED -D_ERROR_PRINT"
 else
-  CC_FLAGS = ENV["CC_FLAGS"] || "-std=c99 -O3 -D_ERROR_PRINT"
+  CC_FLAGS = ENV["CC_FLAGS"] || "-std=gnu99 -O3 -D_ERROR_PRINT"
 end
 
 static_lib = "lib/libh264bsd.a"
