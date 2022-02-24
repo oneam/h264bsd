@@ -46,6 +46,7 @@ end
 
 task :server do
 	require 'webrick'
+	WEBrick::HTTPUtils::DefaultMimeTypes['wasm'] = 'application/wasm'
 	WEBrick::HTTPServer.new(:Port => 8000, :DocumentRoot => Dir.pwd).start
 end
 

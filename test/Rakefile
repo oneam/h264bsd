@@ -38,8 +38,13 @@ file "test_1920x1080.h264" => raw_files("1920x1080") do |f|
   sh "ffmpeg -y -start_number 5208 -i raw/1920x1080/big_buck_bunny_%05d.png -pix_fmt yuv420p -c:v libx264 -x264-params keyint=40 -profile:v baseline -f rawvideo test_1920x1080.h264"
 end
 
+# 1920x1080 full range color
+file "test_1920x1080_fullRange.h264" => raw_files("1920x1080") do |f|
+  sh "ffmpeg -y -start_number 5208 -i raw/1920x1080/big_buck_bunny_%05d.png -pix_fmt yuv420p -color_range 2 -vf scale=in_range=limited:out_range=full -c:v libx264 -x264-params keyint=40 -profile:v baseline -f rawvideo test_1920x1080_fullRange.h264"
+end
+
 desc "Generate encoded test h264 files."
-task :generate_test_data => ["test_640x360.h264", "test_1920x1080.h264"]
+task :generate_test_data => ["test_640x360.h264", "test_1920x1080.h264", "test_1920x1080_fullRange.h264"]
 
 
 rule ".yuv" => ".h264" do |t|
@@ -47,14 +52,16 @@ rule ".yuv" => ".h264" do |t|
 end
 
 desc "Generate decoded yuv test data using ffmpeg. This data is used when comparing decoded output with a known-good sample."
-task :generate_output_data => ["test_640x360.yuv", "test_1920x1080.yuv"]
+task :generate_output_data => ["test_640x360.yuv", "test_1920x1080.yuv", "test_1920x1080_fullRange.yuv"]
 
 task :clean do
   FileUtils.rm_rf "raw"
   FileUtils.rm_f "test_640x360.h264"
   FileUtils.rm_f "test_1920x1080.h264"
+  FileUtils.rm_f "test_1920x1080_fullRange.h264"
   FileUtils.rm_f "test_640x360.yuv"
   FileUtils.rm_f "test_1920x1080.yuv"
+  FileUtils.rm_f "test_1920x1080_fullRange.yuv"
 end
 
 task :default => [:generate_test_data]

@@ -24,7 +24,7 @@
         // Create the decoder and canvas
         var decoder = new Worker('h264bsd_worker.js');
         // var decoder = new Worker('min/h264bsd_worker.min.js');
-        var display = new H264bsdCanvas(canvas); 
+        var display = new H264bsdCanvas(canvas, {'fullRangeColor': false}); 
 
         console.log('Created decoder and canvas');
 
@@ -78,6 +78,7 @@
         }
 
         var buf = null;
+        var playing = false;
 
         // Use the FileReader to get the bytes into the decoder
         function handleFileSelect(evt) {
@@ -89,13 +90,16 @@
             reader.onload = function(e) {
                 buf = new Uint8Array(e.target.result);
 
-                var copy = new Uint8Array(buf)                
-                decoder.postMessage(
-                    {'type' : 'queueInput', 'data' : copy.buffer}, 
-                    [copy.buffer]);
-                setInterval(updateFpsCount, 1000);
+                if (!playing) {
+                    var copy = new Uint8Array(buf)
+                    decoder.postMessage(
+                        {'type' : 'queueInput', 'data' : copy.buffer},
+                        [copy.buffer]);
+                    setInterval(updateFpsCount, 1000);
 
-                console.log('Starting decode loop');
+                    console.log('Starting encode loop');
+                    playing = true;
+                }
             };
 
             // Read in the image file as a data URL.

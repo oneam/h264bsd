@@ -23,14 +23,18 @@
 /**
  * This class can be used to render output pictures from an H264bsdDecoder to a canvas element.
  * If available the content is rendered using WebGL.
+ *
+ * params:
+ * 'forceNoGL' : bool  When set to true, the content will be rendered using 2D canvas (can be very slow)
+ * 'fullRange' : bool  When set to true, the rendering canvas will assume the content is encoded in full range [0..255] instead of studio range [16..235]
  */
-function H264bsdCanvas(canvas, forceNoGL) {
+function H264bsdCanvas(canvas, params) {
     this.canvasElement = canvas;
 
-    if(!forceNoGL) this.initContextGL();
+    if(!params || !params['forceNoGL']) this.initContextGL();
 
     if(this.contextGL) {
-        this.initProgram();
+        this.initProgram(params);
         this.initBuffers();
         this.initTextures();
     }
@@ -75,7 +79,7 @@ H264bsdCanvas.prototype.initContextGL = function() {
 /**
  * Initialize GL shader program
  */
-H264bsdCanvas.prototype.initProgram = function() {
+H264bsdCanvas.prototype.initProgram = function(params) {
     var gl = this.contextGL;
 
     var vertexShaderScript = [
@@ -90,19 +94,43 @@ H264bsdCanvas.prototype.initProgram = function() {
         '}'
         ].join('\n');
 
+    // This matrix is derived from here: https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.709_conversion
+    // The input of Cb and Cr is (0..1) when it needs to be (-0.5..0.5)
+    // R = Y + 1.5748(Cr - 0.5)
+    // G = Y - 0.1873(Cb - 0.5) - 0.4681(Cr - 0.5)
+    // B = Y + 1.8556(Cb - 0.5)
+    var bt709FullRange = [
+        'mat4 (',
+            '1,  0,       1.5748, -0.7874,',
+            '1, -0.1873, -0.4681,  0.3277,',
+            '1,  1.8566,  0,      -0.9278,',
+            '0,  0,       0,       1',
+        ')'
+    ].join(' ');
+
+    // Same as above, but with a scale factor adjusting for studio range input (16..235)
+    var bt709StudioRange = [
+        'mat4 (',
+            '1.1643828125,  0,              1.59602734375, -0.87078515625,',
+            '1.1643828125, -0.39176171875, -0.81296875,     0.52959375,',
+            '1.1643828125,  2.017234375,    0,             -1.081390625,',
+            '0,             0,              0,              1',
+        ')'
+    ].join(' ');
+    
+    var yCbCrMat = bt709StudioRange
+    if (params.hasOwnProperty('fullRangeColor') && params['fullRangeColor']) {
+        console.log('Using full range color conversion')
+        yCbCrMat = bt709FullRange
+    }
+
     var fragmentShaderScript = [
         'precision highp float;',
         'varying highp vec2 textureCoord;',
         'uniform sampler2D ySampler;',
         'uniform sampler2D uSampler;',
         'uniform sampler2D vSampler;',
-        'const mat4 YUV2RGB = mat4',
-        '(',
-            '1.1643828125, 0, 1.59602734375, -.87078515625,',
-            '1.1643828125, -.39176171875, -.81296875, .52959375,',
-            '1.1643828125, 2.017234375, 0, -1.081390625,',
-            '0, 0, 0, 1',
-        ');',
+        'const mat4 YUV2RGB = ' + yCbCrMat + ';',
       
         'void main(void) {',
             'highp float y = texture2D(ySampler,  textureCoord).r;',
