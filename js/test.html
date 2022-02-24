@@ -90,11 +90,14 @@
             reader.onload = function(e) {
                 buf = new Uint8Array(e.target.result);
 
+                var copy = new Uint8Array(buf)
+                decoder.postMessage({
+                    'type' : 'queueInput', 
+                    'data' : copy.buffer, 
+                    'flush' : true
+                }, [copy.buffer]);
+            
                 if (!playing) {
-                    var copy = new Uint8Array(buf)
-                    decoder.postMessage(
-                        {'type' : 'queueInput', 'data' : copy.buffer},
-                        [copy.buffer]);
                     setInterval(updateFpsCount, 1000);
 
                     console.log('Starting encode loop');

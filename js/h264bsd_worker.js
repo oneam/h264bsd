@@ -8,7 +8,7 @@ function onMessage(e) {
     var message = e.data;
     switch(message.type) {
     case 'queueInput' :
-        decoder.queueInput(message.data);
+        decoder.queueInput(message.data, message.flush);
         if(noInput) {
           noInput = false;
           decodeLoop();

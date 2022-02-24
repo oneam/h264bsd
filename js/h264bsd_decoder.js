@@ -82,7 +82,7 @@ H264bsdDecoder.prototype.release = function() {
 /**
  * Queue ArrayBuffer data to be decoded
  */
-H264bsdDecoder.prototype.queueInput = function(data) {
+H264bsdDecoder.prototype.queueInput = function(data, flush) {
     var module = this.module
     var pInput = this.pInput;
     var inputLength = this.inputLength;
@@ -90,6 +90,11 @@ H264bsdDecoder.prototype.queueInput = function(data) {
 
     if (data instanceof ArrayBuffer) {
         data = new Uint8Array(data)
+    }
+
+    if(flush === true && pInput !== 0) {
+        module._free(pInput);
+        pInput = 0
     }
 
     if(pInput === 0) {
