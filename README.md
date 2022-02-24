@@ -23,3 +23,45 @@ The decoder only works nicely if it has a single consistent stream to deal with.
 * *ios* XCode project and objective-c wrapper classes.
 
 This project was heavily inspired by [Broadway.js](https://github.com/mbebenita/Broadway). Much love to them for pioneering the idea.
+
+## Building
+
+This project generally uses [rake](https://github.com/ruby/rake) as a build tool, since I find it simple, clear, and compatible with many different environments.
+
+On Windows, you can download rake along with Ruby using [RubyInstaller](https://rubyinstaller.org)
+On Mac, ruby and rake are already installed
+
+In most cases, once you've installed the dependencies, you can build by changing to the desired directory and running:
+
+```
+rake
+```
+
+Here are very basic instructions for building each version:
+
+### wasm and js
+
+wasm and js use enscripten and Uglify-JS.
+
+* Instructions for getting started with enscripten are here: https://emscripten.org/docs/getting_started/index.html
+* Uglify-JS is availabel here: https://www.npmjs.com/package/uglify-js
+
+### Windows
+
+A Visual Studio project is available for the library as well as a simple test application to ensure it works.
+
+I don't have plans to create a VSCode version of the project any time soon.
+
+### iOS
+
+You should only need Xcode in order to build and test the iOS version of the library. A project file for the library and a simple wrapper application is provided.
+
+### posix
+
+The posix build has been tested with both gcc and clang and the test application only uses POSIX.2 system calls.
+
+### test
+
+The test files are generated from a snippet of the movie ["Big Buck Bunny"](https://peach.blender.org) with uncompressed frames provided by [Xiph.org](https://media.xiph.org)
+
+The encoding is done using [FFMPEG](https://ffmpeg.org)
