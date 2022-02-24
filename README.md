@@ -41,9 +41,9 @@ Here are very basic instructions for building each version:
 
 ### wasm and js
 
-wasm and js use enscripten and Uglify-JS.
+wasm and js use emscripten and Uglify-JS.
 
-* Instructions for getting started with enscripten are here: https://emscripten.org/docs/getting_started/index.html
+* Instructions for getting started with emscripten are here: https://emscripten.org/docs/getting_started/index.html
 * Uglify-JS is availabel here: https://www.npmjs.com/package/uglify-js
 
 ### Windows
