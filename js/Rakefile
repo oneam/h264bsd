@@ -5,6 +5,8 @@ EMCC_FLAGS = ENV["EMCC_FLAGS"] || "-O3 -D_ERROR_PRINT --memory-init-file 0 -s TO
 
 c_files = FileList["../src/*.c"]
 
+UGLIFY_JS = ENV["UGLIFY_JS"] || "terser"
+
 exported_functions = [
 	"_malloc",
 	"_free",
@@ -41,7 +43,7 @@ full_source_files = [
 ]
 
 file "min/h264bsd_full.min.js" => full_source_files + ["min"] do
-	sh "uglifyjs #{full_source_files.join(' ')} -c -m -o min/h264bsd_full.min.js"
+	sh "#{UGLIFY_JS} #{full_source_files.join(' ')} -c -m -o min/h264bsd_full.min.js"
 end
 
 canvas_source_files = [
@@ -49,7 +51,7 @@ canvas_source_files = [
 ]
 
 file "min/h264bsd_canvas.min.js" => canvas_source_files + ["min"] do
-	sh "uglifyjs #{canvas_source_files.join(' ')} -c -m -o min/h264bsd_canvas.min.js"
+	sh "#{UGLIFY_JS} #{canvas_source_files.join(' ')} -c -m -o min/h264bsd_canvas.min.js"
 end
 
 worker_source_files = [
@@ -59,7 +61,7 @@ worker_source_files = [
 ]
 
 file "min/h264bsd_worker.min.js" => worker_source_files + ["min"] do
-	sh "uglifyjs #{worker_source_files.join(' ')} -c -m -o min/h264bsd_worker.min.js"
+	sh "#{UGLIFY_JS} #{worker_source_files.join(' ')} -c -m -o min/h264bsd_worker.min.js"
 end
 
 task :compress => ["min/h264bsd_full.min.js", "min/h264bsd_canvas.min.js", "min/h264bsd_worker.min.js"]
@@ -72,7 +74,7 @@ end
 desc "Check for prereq tools"
 task :setup do
 	sh("emcc --version") { |ok, res| fail("Can't find emscripten binaries.") unless ok }
-	sh("uglifyjs --version") { |ok, res| fail("Can't find UglifyJS tool for minification.") unless ok }
+	sh("#{UGLIFY_JS} --version") { |ok, res| fail("Can't find tool for minification. Please install either UglifyJS or Terser.") unless ok }
 	puts("Ready to go")
 end
 
