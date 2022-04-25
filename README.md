@@ -41,10 +41,10 @@ Here are very basic instructions for building each version:
 
 ### wasm and js
 
-wasm and js use emscripten and Uglify-JS.
+wasm and js use emscripten and Terser.
 
 * Instructions for getting started with emscripten are here: https://emscripten.org/docs/getting_started/index.html
-* Uglify-JS is availabel here: https://www.npmjs.com/package/uglify-js
+* Terser is available here: https://www.npmjs.com/package/terser (You can override Terser for another compatible uglify too using the `UGLIFY_JS` environment variable)
 
 ### Windows
 
