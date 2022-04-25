@@ -1,4 +1,4 @@
-# h264bsd [![Build Status](https://travis-ci.org/oneam/h264bsd.svg?branch=master)](https://travis-ci.org/oneam/h264bsd)
+# h264bsd [![Build Status](https://travis-ci.com/oneam/h264bsd.svg?branch=master)](https://travis-ci.com/oneam/h264bsd)
 
 This is a software-based library that was extracted from the Android project with the intention of being used elsewhere.
 
@@ -44,7 +44,7 @@ Here are very basic instructions for building each version:
 wasm and js use emscripten and Terser.
 
 * Instructions for getting started with emscripten are here: https://emscripten.org/docs/getting_started/index.html
-* Terser is available here: https://www.npmjs.com/package/terser (You can override Terser for another compatible uglify too using the `UGLIFY_JS` environment variable)
+* Terser is available here: https://www.npmjs.com/package/terser (You can override Terser for another compatible uglify tool using the `UGLIFY_JS` environment variable)
 
 ### Windows
 
