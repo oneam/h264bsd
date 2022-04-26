@@ -1,4 +1,4 @@
-# h264bsd [![Build Status](https://travis-ci.com/oneam/h264bsd.svg?branch=master)](https://travis-ci.com/oneam/h264bsd)
+# h264bsd [![Build Status](https://github.com/oneam/h264bsd/actions/workflows/build.yml/badge.svg)](https://github.com/oneam/h264bsd/actions/workflows/build.yml)
 
 This is a software-based library that was extracted from the Android project with the intention of being used elsewhere.
 

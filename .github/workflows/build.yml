@@ -1,0 +1,29 @@
+name: Build
+
+on:
+  push:
+     branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build_posix:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - run: rake ci_build_posix
+
+  build_js:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: mymindstorm/setup-emsdk@v11
+    - run: npm install terser -g
+    - run: rake ci_build_js
+
+  build_wasm:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: mymindstorm/setup-emsdk@v11
+    - run: rake ci_build_wasm
