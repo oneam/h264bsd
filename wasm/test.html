@@ -13,6 +13,7 @@
     <canvas id="canvas" width="640" height="480" style="border:solid;"></canvas>
 
     <script src="h264bsd_canvas.js"></script>
+    <!-- <script src="min/h264bsd_canvas.js"></script> -->
 
     <script type="text/javascript">
         var canvas = document.getElementById('canvas');
@@ -22,6 +23,7 @@
 
         // Create the decoder and canvas
         var decoder = new Worker('h264bsd_worker.js');
+        // var decoder = new Worker('min/h264bsd_worker.js');
         var display = new H264bsdCanvas(canvas, {'fullRangeColor': false});
 
         console.log('Created decoder and canvas');

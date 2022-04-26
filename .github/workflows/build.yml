@@ -26,4 +26,5 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: mymindstorm/setup-emsdk@v11
+    - run: npm install terser -g
     - run: rake ci_build_wasm

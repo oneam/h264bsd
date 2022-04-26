@@ -21,7 +21,7 @@ limitations under the License.
 Additional code and wrappers, not derived from the original AOSP code is covered under an MIT license:
 
 
-Copyright (c) 2014 Sam Leitch. All rights reserved.
+Copyright (c) 2013-2022 Sam Leitch. All rights reserved.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to

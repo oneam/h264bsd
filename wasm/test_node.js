@@ -1,5 +1,6 @@
 async function main() {
-    const H264bsdWasm = require('./h264bsd_wasm');
+    const H264bsd = require('./h264bsd_wasm');
+    const module = await H264bsd();
     const H264bsdDecoder = require('./h264bsd_decoder');
 
     // Load input data
@@ -9,7 +10,7 @@ async function main() {
     const data = await readFile('../test/test_1920x1080.h264');
 
     // Create a decoder instance
-    var decoder = new H264bsdDecoder(H264bsdWasm);
+    var decoder = new H264bsdDecoder(module);
     decoder.onPictureReady = onPictureReady;
     decoder.onHeadersReady = onHeadersReady;
     decoder.queueInput(data);

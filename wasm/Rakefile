@@ -6,6 +6,8 @@ EMCC_FLAGS = "-O0 -g4 -D_ASSERT_USED -D_ERROR_PRINT -s ALLOW_MEMORY_GROWTH=1 -s 
 
 c_files = FileList["../src/*.c"]
 
+UGLIFY_JS = ENV["UGLIFY_JS"] || "terser"
+
 exported_functions = [
 	"_malloc",
 	"_free",
@@ -27,15 +29,30 @@ exported_runtime_methods = [
 	'setValue'
 ]
 
-EXPORT_FLAGS = "-s EXTRA_EXPORTED_RUNTIME_METHODS='#{JSON.generate(exported_runtime_methods)}' -s EXPORTED_FUNCTIONS='#{JSON.generate(exported_functions)}'"
+EXPORT_FLAGS = "-s MODULARIZE=1  -s EXPORT_NAME=H264bsd -s EXPORTED_RUNTIME_METHODS='#{JSON.generate(exported_runtime_methods)}' -s EXPORTED_FUNCTIONS='#{JSON.generate(exported_functions)}'"
 
 file "h264bsd_wasm.js" => c_files do
 	sh "emcc #{c_files.join(' ')} #{EMCC_FLAGS} #{EXPORT_FLAGS} -o h264bsd_wasm.js"
 end
 
+directory "min"
+
+js_files = Rake::FileList.new("*.js").exclude("h264bsd_wasm.js")
+js_files.each do |fl|
+	file "min/#{fl}" => [fl, "min"] do
+		sh "#{UGLIFY_JS} #{fl} -c -m -o min/#{fl}"
+	end
+end
+
+file "min/h264bsd_wasm.js" => ["h264bsd_wasm.js", "min"] do
+	cp "h264bsd_wasm.js", "min/h264bsd_wasm.js"
+	cp "h264bsd_wasm.wasm", "min/h264bsd_wasm.wasm"
+end
+
 task :clean do
 	FileUtils.rm_f("h264bsd_wasm.js")
 	FileUtils.rm_f("h264bsd_wasm.wasm")
+	FileUtils.rm_rf("min")
 end
 
 desc "Check for prereq tools"
@@ -44,13 +61,20 @@ task :setup do
 	puts("Ready to go")
 end
 
+desc "Check for compress prereq tools"
+task :setup_compress do
+	sh("#{UGLIFY_JS} --version") { |ok, res| fail("Can't find tool for minification. Please install either UglifyJS or Terser.") unless ok }
+	puts("Compress ready to go")
+end
+
 task :server do
 	require 'webrick'
 	WEBrick::HTTPUtils::DefaultMimeTypes['wasm'] = 'application/wasm'
 	WEBrick::HTTPServer.new(:Port => 8000, :DocumentRoot => Dir.pwd).start
 end
 
-task :build => [:setup, 'h264bsd_wasm.js']
+task :compress => [:build, :setup_compress, "min/h264bsd_wasm.js", "min/h264bsd_canvas.js", "min/h264bsd_decoder.js", "min/h264bsd_worker.js"]
+task :build => [:setup, "h264bsd_wasm.js"]
 
 task :test do
 	sh "node test_node.js"

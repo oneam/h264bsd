@@ -1,32 +1,35 @@
-const H264bsdAsm = require('./h264bsd_asm');
-const H264bsdDecoder = require('./h264bsd_decoder');
-const fs = require('fs');
+async function main() {
+    const H264bsd = require('./h264bsd_asm');
+    const module = await H264bsd();
+    const H264bsdDecoder = require('./h264bsd_decoder');
 
-fs.readFile('../test/test_1920x1080.h264', (err, data) => {
-    if (err) throw err;
+    // Load input data
+    const util = require('util');
+    const fs = require('fs');
+    const readFile = util.promisify(fs.readFile);
+    const data = await readFile('../test/test_1920x1080.h264');
 
-    var decoder = new H264bsdDecoder(H264bsdAsm);
+    // Create a decoder instance
+    var decoder = new H264bsdDecoder(module);
     decoder.onPictureReady = onPictureReady;
     decoder.onHeadersReady = onHeadersReady;
     decoder.queueInput(data);
-    
+
     var pictureCount = 0;
 
     function onPictureReady() {
-        var output = decoder.nextOutputPicture();
-    
         ++pictureCount;
     }
-    
+
     function onHeadersReady() {
         var width = decoder.outputPictureWidth();
         var height = decoder.outputPictureHeight();
         var croppingParams = decoder.croppingParams();
     
         console.log("Headers parsed", {
-          'width' : width,
-          'height' : height,
-          'croppingParams' : croppingParams,
+            'width' : width,
+            'height' : height,
+            'croppingParams' : croppingParams,
         });
     }
 
@@ -50,4 +53,6 @@ fs.readFile('../test/test_1920x1080.h264', (err, data) => {
     var totalSeconds = (end[0] + end[1] / 1e9) - (start[0] + start[1] / 1e9);
     var fps = pictureCount / totalSeconds
     console.log("Decoded %d frames in %s seconds (%s fps)", pictureCount, totalSeconds.toFixed(2), fps.toFixed(2));
-});
+}
+
+main();

@@ -28,7 +28,7 @@ exported_runtime_methods = [
 	'setValue'
 ]
 
-EXPORT_FLAGS = "-s LINKABLE=1 -s EXTRA_EXPORTED_RUNTIME_METHODS='#{JSON.generate(exported_runtime_methods)}' -s EXPORTED_FUNCTIONS='#{JSON.generate(exported_functions)}'"
+EXPORT_FLAGS = "-s MODULARIZE=1 -s EXPORT_NAME=H264bsd -s EXPORTED_RUNTIME_METHODS='#{JSON.generate(exported_runtime_methods)}' -s EXPORTED_FUNCTIONS='#{JSON.generate(exported_functions)}'"
 
 file "h264bsd_asm.js" do                                     
 	sh "emcc #{c_files.join(' ')} #{EMCC_FLAGS} #{EXPORT_FLAGS} -o h264bsd_asm.js"
@@ -36,35 +36,16 @@ end
 
 directory "min"
 
-full_source_files = [
-	"h264bsd_asm.js",
-	"h264bsd_decoder.js",
-	"h264bsd_canvas.js"
-]
-
-file "min/h264bsd_full.min.js" => full_source_files + ["min"] do
-	sh "#{UGLIFY_JS} #{full_source_files.join(' ')} -c -m -o min/h264bsd_full.min.js"
+js_files = Rake::FileList.new("*.js").exclude("h264bsd_asm.js")
+js_files.each do |fl|
+	file "min/#{fl}" => [fl, "min"] do
+		sh "#{UGLIFY_JS} #{fl} -c -m -o min/#{fl}"
+	end
 end
 
-canvas_source_files = [
-	"h264bsd_canvas.js"
-]
-
-file "min/h264bsd_canvas.min.js" => canvas_source_files + ["min"] do
-	sh "#{UGLIFY_JS} #{canvas_source_files.join(' ')} -c -m -o min/h264bsd_canvas.min.js"
+file "min/h264bsd_asm.js" => ["h264bsd_asm.js", "min"] do
+	cp "h264bsd_asm.js", "min/h264bsd_asm.js"
 end
-
-worker_source_files = [
-	"h264bsd_asm.js",
-	"h264bsd_decoder.js",
-	"h264bsd_worker.js"
-]
-
-file "min/h264bsd_worker.min.js" => worker_source_files + ["min"] do
-	sh "#{UGLIFY_JS} #{worker_source_files.join(' ')} -c -m -o min/h264bsd_worker.min.js"
-end
-
-task :compress => ["min/h264bsd_full.min.js", "min/h264bsd_canvas.min.js", "min/h264bsd_worker.min.js"]
 
 task :clean do
 	FileUtils.rm_f("h264bsd_asm.js")
@@ -74,8 +55,13 @@ end
 desc "Check for prereq tools"
 task :setup do
 	sh("emcc --version") { |ok, res| fail("Can't find emscripten binaries.") unless ok }
-	sh("#{UGLIFY_JS} --version") { |ok, res| fail("Can't find tool for minification. Please install either UglifyJS or Terser.") unless ok }
 	puts("Ready to go")
+end
+
+desc "Check for compress prereq tools"
+task :setup_compress do
+	sh("#{UGLIFY_JS} --version") { |ok, res| fail("Can't find tool for minification. Please install either UglifyJS or Terser.") unless ok }
+	puts("Compress ready to go")
 end
 
 task :server do
@@ -83,7 +69,9 @@ task :server do
 	WEBrick::HTTPServer.new(:Port => 8000, :DocumentRoot => Dir.pwd).start
 end
 
-task :build => [:setup, :compress]
+
+task :compress => [:build, :setup_compress, "min/h264bsd_asm.js", "min/h264bsd_canvas.js", "min/h264bsd_decoder.js", "min/h264bsd_worker.js"]
+task :build => [:setup, "h264bsd_asm.js"]
 
 task :test do
 	sh "node test_node.js"

@@ -18,13 +18,13 @@ end
 
 task :ci_build_js do
     Dir.chdir("js") do
-        sh "rake clean build test"
+        sh "rake clean build compress test"
     end
 end
 
 task :ci_build_wasm do
     Dir.chdir("wasm") do
-        sh "rake clean build test"
+        sh "rake clean build compress test"
     end
 end
 
