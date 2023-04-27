@@ -64,7 +64,7 @@ function onHeadersReady() {
     });
 }
 
-function decodeLoop() {
+function decodeOnce() {
     var result = decoder.decode();
 
     switch(result) {
@@ -82,8 +82,17 @@ function decodeLoop() {
         postMessage({'type': 'noInput'});
         break;
     default:
-        setTimeout(decodeLoop, 0);
+        return true
     }
+    return false
+}
+
+function decodeLoop() {
+  while (true) {
+    if(!decodeOnce()) {
+        return
+    }
+  }
 }
 
 addEventListener('message', onMessage);
