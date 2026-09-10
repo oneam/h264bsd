@@ -367,6 +367,9 @@ u32 h264bsdInterPrediction(mbStorage_t *pMb, macroblockLayer_t *pMbLayer,
     u32 i;
     u32 x, y;
     u32 row, col;
+    u32 width, picSize;
+    i32 xInt, yInt;
+    u8 *ref;
     subMbPartMode_e subPartMode;
     image_t refImage;
 
@@ -391,6 +394,48 @@ u32 h264bsdInterPrediction(mbStorage_t *pMb, macroblockLayer_t *pMbLayer,
             if (MvPrediction16x16(pMb, &pMbLayer->mbPred, dpb) != HANTRO_OK)
                 return(HANTRO_NOK);
             refImage.data = pMb->refAddr[0];
+            /* P_Skip carries no residual, so the prediction is already the
+             * final macroblock. When the motion vector has no fractional
+             * part (the low 3 bits cover quarter-pel luma and eighth-pel
+             * chroma alike) and the partition lies fully inside the
+             * reference frame, that prediction is a plain copy. Write it
+             * straight into the image and skip both the fill into data and
+             * h264bsdWriteMacroblock. decoded == 1 mirrors the decoded > 1
+             * test below: a macroblock repeated in a redundant slice must
+             * not be written twice. */
+            if (pMb->mbType == P_Skip && pMb->decoded == 1 &&
+                ((pMb->mv[0].hor | pMb->mv[0].ver) & 0x7) == 0)
+            {
+                width = 16 * currImage->width;
+                xInt = (i32)col + (pMb->mv[0].hor >> 2);
+                yInt = (i32)row + (pMb->mv[0].ver >> 2);
+
+                if (xInt >= 0 && yInt >= 0 && xInt + 16 <= (i32)width &&
+                    yInt + 16 <= (i32)(16 * currImage->height))
+                {
+                    picSize = currImage->width * currImage->height;
+
+                    ref = refImage.data + (u32)yInt * width + (u32)xInt;
+                    for (i = 0; i < 16; i++)
+                        memcpy(currImage->luma + i * width, ref + i * width,
+                            16);
+
+                    /* chroma runs at half resolution; the motion vector is
+                     * a multiple of 8 and col/row of 16, so halving the
+                     * luma position is exact */
+                    width >>= 1;
+                    ref = refImage.data + picSize * 256 +
+                        ((u32)yInt >> 1) * width + ((u32)xInt >> 1);
+                    for (i = 0; i < 8; i++)
+                    {
+                        memcpy(currImage->cb + i * width, ref + i * width, 8);
+                        memcpy(currImage->cr + i * width,
+                            ref + picSize * 64 + i * width, 8);
+                    }
+
+                    return(HANTRO_OK);
+                }
+            }
             h264bsdPredictSamples(data, pMb->mv, &refImage, col, row, 0, 0,
                 16, 16);
             break;
